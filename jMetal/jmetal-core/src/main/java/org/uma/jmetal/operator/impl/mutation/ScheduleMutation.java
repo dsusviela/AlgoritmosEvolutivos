@@ -86,7 +86,6 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
 
     /** Perform the mutation operation */
     private void doMutation(double probability, IntegerSolution solution) {
-        Double rnd, delta1, delta2, mutPow, deltaq;
         int cellValue, lowerBound, upperBound;
         boolean[] evaluated = new boolean[solution.getNumberOfVariables()];
 
