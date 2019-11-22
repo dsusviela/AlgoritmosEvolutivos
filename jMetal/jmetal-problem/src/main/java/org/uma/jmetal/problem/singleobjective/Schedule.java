@@ -7,11 +7,31 @@ import org.uma.jmetal.solution.impl.DefaultIntegerSolution;
 import java.util.*;
 
 public class Schedule extends AbstractIntegerProblem {
+  // total cells in matrix
   private int cellsInMatrix = 1110;
+  // total courses in matrix
   private int amountCourses;
+  // how 'wrong' is to have uneven distribution of courses over the turns in a given day
   private int disparityFactor;
-  private HashMap<Integer, HashSet<Integer>> courseMap;
+  // given a course returns its orientations
+  private HashMap<Integer, HashSet<Integer>> courseMapOrientation;
+  // given a course returns its classes in order
+  // position 0 refers to lectures, 1 to practice, 2 single practice, 3 to single lecture
+  private HashMap<Integer, ArrayList<Integer>> courseMapClasses;
+  // given the string id of a classroom returns the capacity
+  private HashMap<String, Integer> classroomCapacity;
+  // given the number id of a classroom returns the string id
+  private HashMap<Integer, String> classroomNameMap;
+  // given a class returns the number of students
   private HashMap<Integer, Integer> classStudents;
+  // given an orientation returns the number of students
+  private HashMap<Integer, Integer> orientationStudents;
+  // given a year returns the factor of student decay for said year
+  // please note that course 44 in deault data has a special factor
+  private HashMap<Integer, Float> attendanceFactor;
+  // given a course returns the year it corresponds to.
+  // please note that course 44 in deault data has a special year
+  private HashMap<Integer, Integer> courseMapYear;
 
   public Schedule() {
     setNumberOfVariables(cellsInMatrix);
@@ -26,11 +46,15 @@ public class Schedule extends AbstractIntegerProblem {
     }
     setLowerLimit(lowerLimit);
     setUpperLimit(upperLimit);
+
+    generateInstance();
+    disparityFactor = 80;
   }
 
   @Override
   public void evaluate(IntegerSolution solution) {
     LinkedList<Integer> solutionVector = new LinkedList<Integer>();
+    solution = createFeasibleSolution(solution);
     for (int i = 0; i < cellsInMatrix; i++) {
       solutionVector.add(solution.getVariableValue(i));
     }
@@ -44,23 +68,59 @@ public class Schedule extends AbstractIntegerProblem {
         }
       }
     }
-    fitness += distributionDisparity(solution);
+    fitness += classTurnDistributionDisparity(solution);
     solution.setObjective(0, fitness);
   }
+  
+  private IntegerSolution createFeasibleSolution(IntegerSolution solution) {
+    solution = checkClassroomCapacity(solution);
+    solution = checkPairsDay(solution);
+    solution = checkTurnDay(solution);
+    return solution;
+  }
 
-  private int overlap(int c1, int c2, IntegerSolution matrix) {
+  private IntegerSolution checkClassroomCapacity(IntegerSolution solution) {
+    for (int cellIndex = 0; cellIndex < cellsInMatrix; cellIndex++) {
+      // we only want to iterate in the cells that have classes
+      if (isIndexClass(cellIndex) && indexHasClass(cellIndex, solution)) {
+        int classroom = getClassroom(cellIndex);
+        int capacity = classroomCapacity.get(classroomNameMap.get(classroom));
+        int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
+        // we now check if theres a capacity conflict
+        if (capacity < attendingStudents) {
+          // conflict resolution
+        }
+      }
+    }
+    return solution;
+  }
+
+  private int getAttendingStudents(Integer classWithType) {
+    int type = getClassType(classWithType);
+    int course = getClassCourse(classWithType);
+    int amountOfStudents = 0;
+    for (Integer orientation : courseMapOrientation.get(course)) {
+      amountOfStudents += orientationStudents.get(orientation);
+    }
+    int year = courseMapYear.get(course);
+    amountOfStudents = (int) (attendanceFactor.get(year) *
+        amountOfStudents * getTypeProportionInCourse(type, course));
+    return amountOfStudents;
+  }
+
+  private int overlap(int courseIndex1, int courseIndex2, IntegerSolution matrix) {
     int affectedStudents = 0;
     // checking if both classes actually collide
-    if (!(getTurn(c1) == getTurn(c2) &&
-        getDay(c1) == getDay(c1))) {
+    if (!(getTurn(courseIndex1) == getTurn(courseIndex2) &&
+        getDay(courseIndex1) == getDay(courseIndex1))) {
       return affectedStudents;
     }
     // get the orientations affected by the collision
-    Integer class1 = new Integer(matrix.getVariableValue(c1));
-    Integer class2 = new Integer(matrix.getVariableValue(c2));
+    Integer course1 = new Integer(matrix.getVariableValue(courseIndex1) / 10);
+    Integer course2 = new Integer(matrix.getVariableValue(courseIndex2) / 10);
     HashSet<Integer> collidingOrientations = new HashSet<Integer>();
-    for (Integer orientation : courseMap.get(class1)) {
-      if (courseMap.get(class2).contains(orientation)) {
+    for (Integer orientation : courseMapOrientation.get(course1)) {
+      if (courseMapOrientation.get(course2).contains(orientation)) {
         collidingOrientations.add(orientation);
       }
     }
@@ -70,12 +130,15 @@ public class Schedule extends AbstractIntegerProblem {
     }
     // check if there is a third courses that collides aswell
     boolean jumpDay = true;
-    int startingCell = getDay(c1)*2 + getTurn(c1)*20;
-    for (int c3 = startingCell; c3 < cellsInMatrix; c3 += (jumpDay ? 59 : 1)) {
-      Integer class3 = new Integer(matrix.getVariableValue(c3));
-      if (c3 != c1 && c3 != c2) {
+    int startingCell = getDay(courseIndex1)*2 + getTurn(courseIndex1)*20;
+    for (int courseIndex3 = startingCell; courseIndex3 < cellsInMatrix; courseIndex3 += (jumpDay ? 59 : 1)) {
+      Integer class3 = new Integer(matrix.getVariableValue(courseIndex3) / 10);
+      if (courseIndex3 != courseIndex1 && courseIndex3 != courseIndex2) {
         for (Integer collidingOrientation : collidingOrientations) {
-          if (courseMap.get(class3).contains(collidingOrientation)) {
+          if (class3 == course2 && course2 == course1) {
+            // if its the same course we must penalize even harder
+            affectedStudents += classStudents.get(class3) * 2;
+          } else if (courseMapOrientation.get(class3).contains(collidingOrientation)) {
             affectedStudents += classStudents.get(class3);
           }
         }
@@ -85,19 +148,7 @@ public class Schedule extends AbstractIntegerProblem {
     return affectedStudents;
   }
 
-  private int getDay(int index) {
-    return (index % 10)/2;
-  }
-
-  private int getTurn(int index) {
-    return (index / 20) % 3;
-  }
-
-  private boolean isIndexClass(int index) {
-    return (index % 20) < 10;
-  }
-
-  private int distributionDisparity(IntegerSolution matrix) {
+  private int classTurnDistributionDisparity(IntegerSolution matrix) {
     // initializing structures
     int disparity = 0;
     HashMap<Integer, HashMap<Integer, Integer>> courseHeatmap =
@@ -105,17 +156,17 @@ public class Schedule extends AbstractIntegerProblem {
     for (int course = 0; course < amountCourses; course++) {
       HashMap<Integer, Integer> turnHeatmap = new HashMap<Integer, Integer>();
       for (int turn = 0; turn < 3; turn++) {
-        turnHeatmap.put(turn, new Integer(0));
+        turnHeatmap.put(turn, 0);
       }
-      courseHeatmap.put(new Integer(course), turnHeatmap);
+      courseHeatmap.put(course, turnHeatmap);
     }
     // populating heatmap
     for (int courseIndex = 0; courseIndex < cellsInMatrix; courseIndex++) {
       if (!isIndexClass(courseIndex)) {
         continue;
       }
-      Integer course = new Integer(matrix.getVariableValue(courseIndex));
-      Integer turn = new Integer(getTurn(courseIndex));
+      Integer course = new Integer(matrix.getVariableValue(courseIndex) / 10);
+      Integer turn = getTurn(courseIndex);
       HashMap<Integer, Integer> turnCourseMap = courseHeatmap.get(course);
       Integer coursesInTurn = turnCourseMap.get(turn);
       turnCourseMap.put(turn, coursesInTurn++);
@@ -133,5 +184,710 @@ public class Schedule extends AbstractIntegerProblem {
   @Override
   public IntegerSolution createSolution() {
     return new DefaultIntegerSolution(this);
+  }
+
+  // creates an instance problem
+  private void generateInstance() {
+    amountCourses = 63;
+    classroomCapacity = new HashMap<String, Integer>();
+    classroomCapacity.put("31", 50);
+    classroomCapacity.put("101", 55);
+    classroomCapacity.put("102", 55);
+    classroomCapacity.put("115", 42);
+    classroomCapacity.put("116", 25);
+    classroomCapacity.put("301", 130);
+    classroomCapacity.put("303", 110);
+    classroomCapacity.put("305", 60);
+    classroomCapacity.put("307", 350);
+    classroomCapacity.put("309", 32);
+    classroomCapacity.put("310", 32);
+    classroomCapacity.put("311", 60);
+    classroomCapacity.put("501", 130);
+    classroomCapacity.put("601", 110);
+    classroomCapacity.put("ACTOS", 300);
+    classroomCapacity.put("502", 50);
+    classroomCapacity.put("703", 45);
+    classroomCapacity.put("705", 40);
+    classroomCapacity.put("720", 40);
+    classroomCapacity.put("722", 50);
+    classroomCapacity.put("725", 40);
+    classroomCapacity.put("727", 50);
+    classroomCapacity.put("A01", 300);
+    classroomCapacity.put("A11", 100);
+    classroomCapacity.put("A12", 220);
+    classroomCapacity.put("A21", 140);
+    classroomCapacity.put("A22", 220);
+    classroomCapacity.put("B01", 380);
+    classroomCapacity.put("B11", 90);
+    classroomCapacity.put("B12", 250);
+    classroomCapacity.put("B21", 70);
+    classroomCapacity.put("B22", 70);
+    classroomCapacity.put("C01", 200);
+    classroomCapacity.put("C11", 100);
+    classroomCapacity.put("C12", 220);
+    classroomCapacity.put("C21", 100);
+    classroomCapacity.put("C22", 220);
+    classroomCapacity.put("UDELAR A", 21);
+    classroomCapacity.put("UDELAR B", 21);
+    classroomCapacity.put("UDELAR C", 21);
+    classroomCapacity.put("UDELAR D", 21);
+    classroomCapacity.put("BIBLIOTECA", 10);
+    classroomCapacity.put("312", 42);
+    classroomCapacity.put("314", 44);
+    classroomCapacity.put("315", 30);
+    classroomCapacity.put("401", 45);
+    classroomCapacity.put("402", 36);
+    classroomCapacity.put("SW", 16);
+
+    classroomNameMap = new HashMap<Integer, String>();
+    int key = 0;
+    for (String stringNameId : classroomCapacity.keySet()) {
+      classroomNameMap.put(key, stringNameId);
+      key++;
+    }
+
+    courseMapOrientation = new HashMap<Integer, HashSet<Integer>>();
+    HashSet<Integer> orientationSet = new HashSet<>();
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    orientationSet.add(1);
+    orientationSet.add(2);
+    orientationSet.add(3);
+    orientationSet.add(4);
+    orientationSet.add(5);
+    orientationSet.add(6);
+    orientationSet.add(9);
+    orientationSet.add(10);
+    orientationSet.add(11);
+    courseMapOrientation.put(0, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    orientationSet.add(1);
+    orientationSet.add(2);
+    orientationSet.add(3);
+    orientationSet.add(4);
+    orientationSet.add(5);
+    orientationSet.add(6);
+    orientationSet.add(9);
+    orientationSet.add(10);
+    orientationSet.add(11);
+    courseMapOrientation.put(1, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    orientationSet.add(1);
+    orientationSet.add(2);
+    orientationSet.add(3);
+    orientationSet.add(4);
+    orientationSet.add(5);
+    orientationSet.add(6);
+    orientationSet.add(9);
+    orientationSet.add(10);
+    orientationSet.add(11);
+    orientationSet.add(12);
+    courseMapOrientation.put(2, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    orientationSet.add(1);
+    orientationSet.add(2);
+    orientationSet.add(5);
+    orientationSet.add(6);
+    orientationSet.add(10);
+    courseMapOrientation.put(3, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(3);
+    orientationSet.add(9);
+    courseMapOrientation.put(4, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    orientationSet.add(1);
+    orientationSet.add(3);
+    orientationSet.add(5);
+    orientationSet.add(6);
+    orientationSet.add(9);
+    orientationSet.add(10);
+    orientationSet.add(11);
+    courseMapOrientation.put(5, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    orientationSet.add(1);
+    orientationSet.add(2);
+    orientationSet.add(3);
+    orientationSet.add(4);
+    orientationSet.add(5);
+    orientationSet.add(6);
+    orientationSet.add(9);
+    orientationSet.add(10);
+    courseMapOrientation.put(6, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    orientationSet.add(1);
+    orientationSet.add(3);
+    orientationSet.add(5);
+    orientationSet.add(6);
+    orientationSet.add(9);
+    orientationSet.add(10);
+    orientationSet.add(11);
+    courseMapOrientation.put(7, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    courseMapOrientation.put(8, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    orientationSet.add(1);
+    orientationSet.add(2);
+    orientationSet.add(4);
+    courseMapOrientation.put(9, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(1);
+    orientationSet.add(2);
+    orientationSet.add(3);
+    orientationSet.add(5);
+    orientationSet.add(6);
+    orientationSet.add(10);
+    courseMapOrientation.put(10, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(1);
+    orientationSet.add(2);
+    orientationSet.add(3);
+    orientationSet.add(5);
+    orientationSet.add(6);
+    orientationSet.add(11);
+    courseMapOrientation.put(11, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(1);
+    orientationSet.add(2);
+    orientationSet.add(11);
+    courseMapOrientation.put(12, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(4);
+    courseMapOrientation.put(13, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(4);
+    courseMapOrientation.put(14, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(4);
+    orientationSet.add(9);
+    courseMapOrientation.put(15, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(2);
+    orientationSet.add(5);
+    orientationSet.add(6);
+    orientationSet.add(12);
+    courseMapOrientation.put(16, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    courseMapOrientation.put(17, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    courseMapOrientation.put(18, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    courseMapOrientation.put(19, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    orientationSet.add(1);
+    courseMapOrientation.put(20, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(1);
+    courseMapOrientation.put(21, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(1);
+    courseMapOrientation.put(22, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(1);
+    courseMapOrientation.put(23, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(1);
+    orientationSet.add(2);
+    orientationSet.add(4);
+    courseMapOrientation.put(24, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(2);
+    courseMapOrientation.put(25, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(2);
+    orientationSet.add(4);
+    courseMapOrientation.put(26, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(2);
+    orientationSet.add(5);
+    orientationSet.add(6);
+    orientationSet.add(12);
+    courseMapOrientation.put(27, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(3);
+    orientationSet.add(9);
+    courseMapOrientation.put(28, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(3);
+    orientationSet.add(9);
+    courseMapOrientation.put(29, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(3);
+    courseMapOrientation.put(30, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(3);
+    courseMapOrientation.put(31, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(3);
+    orientationSet.add(9);
+    courseMapOrientation.put(32, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(4);
+    courseMapOrientation.put(33, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(4);
+    courseMapOrientation.put(34, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(4);
+    courseMapOrientation.put(35, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(5);
+    orientationSet.add(6);
+    courseMapOrientation.put(36, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(6);
+    courseMapOrientation.put(37, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(6);
+    courseMapOrientation.put(38, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(7);
+    orientationSet.add(8);
+    orientationSet.add(11);
+    courseMapOrientation.put(39, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(7);
+    orientationSet.add(8);
+    orientationSet.add(11);
+    courseMapOrientation.put(40, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(9);
+    courseMapOrientation.put(41, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(9);
+    courseMapOrientation.put(42, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(10);
+    courseMapOrientation.put(43, orientationSet);
+
+    orientationSet = new HashSet<>();
+    orientationSet.add(0);
+    orientationSet.add(1);
+    orientationSet.add(3);
+    orientationSet.add(5);
+    orientationSet.add(6);
+    orientationSet.add(10);
+    orientationSet.add(12);
+    courseMapOrientation.put(44, orientationSet);
+
+    courseMapClasses = new HashMap<Integer, ArrayList<Integer>>();
+    for (int i = 0; i < 45; i++) {
+      courseMapClasses.put(i, new ArrayList<Integer>());
+    }
+
+    courseMapClasses.get(0).add(0, 5);
+    courseMapClasses.get(0).add(1, 12);
+    courseMapClasses.get(0).add(2, 0);
+    courseMapClasses.get(0).add(3, 0);
+
+    courseMapClasses.get(1).add(0, 5);
+    courseMapClasses.get(1).add(1, 15);
+    courseMapClasses.get(1).add(2, 0);
+    courseMapClasses.get(1).add(3, 0);
+
+    courseMapClasses.get(2).add(0, 5);
+    courseMapClasses.get(2).add(1, 15);
+    courseMapClasses.get(2).add(2, 5);
+    courseMapClasses.get(2).add(3, 0);
+
+    courseMapClasses.get(3).add(0, 0);
+    courseMapClasses.get(3).add(1, 0);
+    courseMapClasses.get(3).add(2, 7);
+    courseMapClasses.get(3).add(3, 2);
+
+    courseMapClasses.get(4).add(0, 0);
+    courseMapClasses.get(4).add(1, 0);
+    courseMapClasses.get(4).add(2, 5);
+    courseMapClasses.get(4).add(3, 0);
+
+    courseMapClasses.get(5).add(0, 3);
+    courseMapClasses.get(5).add(1, 6);
+    courseMapClasses.get(5).add(2, 0);
+    courseMapClasses.get(5).add(3, 0);
+
+    courseMapClasses.get(6).add(0, 4);
+    courseMapClasses.get(6).add(1, 10);
+    courseMapClasses.get(6).add(2, 0);
+    courseMapClasses.get(6).add(3, 0);
+
+    courseMapClasses.get(7).add(0, 1);
+    courseMapClasses.get(7).add(1, 12);
+    courseMapClasses.get(7).add(2, 0);
+    courseMapClasses.get(7).add(3, 0);
+
+    courseMapClasses.get(8).add(0, 1);
+    courseMapClasses.get(8).add(1, 0);
+    courseMapClasses.get(8).add(2, 0);
+    courseMapClasses.get(8).add(3, 0);
+
+    courseMapClasses.get(9).add(0, 0);
+    courseMapClasses.get(9).add(1, 0);
+    courseMapClasses.get(9).add(2, 0);
+    courseMapClasses.get(9).add(3, 1);
+
+    courseMapClasses.get(10).add(0, 2);
+    courseMapClasses.get(10).add(1, 0);
+    courseMapClasses.get(10).add(2, 12);
+    courseMapClasses.get(10).add(3, 0);
+
+    courseMapClasses.get(11).add(0, 0);
+    courseMapClasses.get(11).add(1, 0);
+    courseMapClasses.get(11).add(2, 12);
+    courseMapClasses.get(11).add(3, 0);
+
+    courseMapClasses.get(12).add(0, 0);
+    courseMapClasses.get(12).add(1, 0);
+    courseMapClasses.get(12).add(2, 1);
+    courseMapClasses.get(12).add(3, 1);
+
+    courseMapClasses.get(13).add(0, 2);
+    courseMapClasses.get(13).add(1, 7);
+    courseMapClasses.get(13).add(2, 0);
+    courseMapClasses.get(13).add(3, 0);
+
+    courseMapClasses.get(14).add(0, 1);
+    courseMapClasses.get(14).add(1, 0);
+    courseMapClasses.get(14).add(2, 2);
+    courseMapClasses.get(14).add(3, 0);
+
+    courseMapClasses.get(15).add(0, 1);
+    courseMapClasses.get(15).add(1, 2);
+    courseMapClasses.get(15).add(2, 0);
+    courseMapClasses.get(15).add(3, 0);
+
+    courseMapClasses.get(16).add(0, 1);
+    courseMapClasses.get(16).add(1, 0);
+    courseMapClasses.get(16).add(2, 0);
+    courseMapClasses.get(16).add(3, 0);
+
+    courseMapClasses.get(17).add(0, 0);
+    courseMapClasses.get(17).add(1, 0);
+    courseMapClasses.get(17).add(2, 1);
+    courseMapClasses.get(17).add(3, 1);
+
+    courseMapClasses.get(18).add(0, 1);
+    courseMapClasses.get(18).add(1, 0);
+    courseMapClasses.get(18).add(2, 1);
+    courseMapClasses.get(18).add(3, 0);
+
+    courseMapClasses.get(19).add(0, 0);
+    courseMapClasses.get(19).add(1, 0);
+    courseMapClasses.get(19).add(2, 0);
+    courseMapClasses.get(19).add(3, 0);
+
+    courseMapClasses.get(20).add(0, 0);
+    courseMapClasses.get(20).add(1, 0);
+    courseMapClasses.get(20).add(2, 0);
+    courseMapClasses.get(20).add(3, 1);
+
+    courseMapClasses.get(21).add(0, 1);
+    courseMapClasses.get(21).add(1, 0);
+    courseMapClasses.get(21).add(2, 0);
+    courseMapClasses.get(21).add(3, 0);
+
+    courseMapClasses.get(22).add(0, 1);
+    courseMapClasses.get(22).add(1, 0);
+    courseMapClasses.get(22).add(2, 2);
+    courseMapClasses.get(22).add(3, 0);
+
+    courseMapClasses.get(23).add(0, 1);
+    courseMapClasses.get(23).add(1, 1);
+    courseMapClasses.get(23).add(2, 5);
+    courseMapClasses.get(23).add(3, 0);
+
+    courseMapClasses.get(24).add(0, 1);
+    courseMapClasses.get(24).add(1, 0);
+    courseMapClasses.get(24).add(2, 6);
+    courseMapClasses.get(24).add(3, 0);
+
+    courseMapClasses.get(25).add(0, 1);
+    courseMapClasses.get(25).add(1, 0);
+    courseMapClasses.get(25).add(2, 0);
+    courseMapClasses.get(25).add(3, 0);
+
+    courseMapClasses.get(26).add(0, 1);
+    courseMapClasses.get(26).add(1, 0);
+    courseMapClasses.get(26).add(2, 0);
+    courseMapClasses.get(26).add(3, 0);
+
+    courseMapClasses.get(27).add(0, 0);
+    courseMapClasses.get(27).add(1, 0);
+    courseMapClasses.get(27).add(2, 1);
+    courseMapClasses.get(27).add(3, 1);
+
+    courseMapClasses.get(28).add(0, 1);
+    courseMapClasses.get(28).add(1, 0);
+    courseMapClasses.get(28).add(2, 2);
+    courseMapClasses.get(28).add(3, 0);
+
+    courseMapClasses.get(29).add(0, 1);
+    courseMapClasses.get(29).add(1, 0);
+    courseMapClasses.get(29).add(2, 2);
+    courseMapClasses.get(29).add(3, 0);
+
+    courseMapClasses.get(30).add(0, 1);
+    courseMapClasses.get(30).add(1, 0);
+    courseMapClasses.get(30).add(2, 2);
+    courseMapClasses.get(30).add(3, 0);
+
+    courseMapClasses.get(31).add(0, 1);
+    courseMapClasses.get(31).add(1, 0);
+    courseMapClasses.get(31).add(2, 0);
+    courseMapClasses.get(31).add(3, 0);
+
+    courseMapClasses.get(32).add(0, 1);
+    courseMapClasses.get(32).add(1, 0);
+    courseMapClasses.get(32).add(2, 2);
+    courseMapClasses.get(32).add(3, 0);
+
+    courseMapClasses.get(33).add(0, 1);
+    courseMapClasses.get(33).add(1, 0);
+    courseMapClasses.get(33).add(2, 3);
+    courseMapClasses.get(33).add(3, 0);
+
+    courseMapClasses.get(34).add(0, 1);
+    courseMapClasses.get(34).add(1, 1);
+    courseMapClasses.get(34).add(2, 0);
+    courseMapClasses.get(34).add(3, 0);
+
+    courseMapClasses.get(35).add(0, 1);
+    courseMapClasses.get(35).add(1, 0);
+    courseMapClasses.get(35).add(2, 2);
+    courseMapClasses.get(35).add(3, 0);
+
+    courseMapClasses.get(36).add(0, 1);
+    courseMapClasses.get(36).add(1, 0);
+    courseMapClasses.get(36).add(2, 3);
+    courseMapClasses.get(36).add(3, 0);
+
+    courseMapClasses.get(37).add(0, 0);
+    courseMapClasses.get(37).add(1, 0);
+    courseMapClasses.get(37).add(2, 3);
+    courseMapClasses.get(37).add(3, 1);
+
+    courseMapClasses.get(38).add(0, 1);
+    courseMapClasses.get(38).add(1, 0);
+    courseMapClasses.get(38).add(2, 0);
+    courseMapClasses.get(38).add(3, 0);
+
+    courseMapClasses.get(39).add(0, 1);
+    courseMapClasses.get(39).add(1, 0);
+    courseMapClasses.get(39).add(2, 0);
+    courseMapClasses.get(39).add(3, 0);
+
+    courseMapClasses.get(40).add(0, 1);
+    courseMapClasses.get(40).add(1, 0);
+    courseMapClasses.get(40).add(2, 1);
+    courseMapClasses.get(40).add(3, 0);
+
+    courseMapClasses.get(41).add(0, 1);
+    courseMapClasses.get(41).add(1, 3);
+    courseMapClasses.get(41).add(2, 0);
+    courseMapClasses.get(41).add(3, 0);
+
+    courseMapClasses.get(42).add(0, 1);
+    courseMapClasses.get(42).add(1, 0);
+    courseMapClasses.get(42).add(2, 1);
+    courseMapClasses.get(42).add(3, 0);
+
+    courseMapClasses.get(43).add(0, 1);
+    courseMapClasses.get(43).add(1, 0);
+    courseMapClasses.get(43).add(2, 0);
+    courseMapClasses.get(43).add(3, 0);
+
+    courseMapClasses.get(44).add(0, 2);
+    courseMapClasses.get(44).add(1, 7);
+    courseMapClasses.get(44).add(2, 0);
+    courseMapClasses.get(44).add(3, 0);
+
+    orientationStudents = new HashMap<Integer, Integer>();
+    orientationStudents.put(0, 39);
+    orientationStudents.put(1, 259);
+    orientationStudents.put(2, 96);
+    orientationStudents.put(3, 218);
+    orientationStudents.put(4, 728);
+    orientationStudents.put(5, 242);
+    orientationStudents.put(6, 21);
+    orientationStudents.put(7, 28);
+    orientationStudents.put(8, 102);
+    orientationStudents.put(9, 50);
+    orientationStudents.put(10, 41);
+    orientationStudents.put(11, 206);
+    orientationStudents.put(12, 91);
+
+    // factor of total students that take courses of the "key" year
+    attendanceFactor = new HashMap<Integer, Float>();
+    attendanceFactor.put(1, 0.882f);
+    attendanceFactor.put(2, 0.475f);
+    attendanceFactor.put(3, 0.307f);
+    // special case for course 44, it can be coursed either in
+    // the second year and in the third. Attendance factors are averaged
+    attendanceFactor.put(0, (attendanceFactor.get(2) + attendanceFactor.get(3)) / 2);
+
+    // maps a course to the year its dictated
+    courseMapYear = new HashMap<Integer, Integer>();
+    for (int courseId = 0; courseId < 45; courseId++) {
+      if (courseId < 5) {
+        courseMapYear.put(courseId, 1);
+      } else if (courseId < 17) {
+        courseMapYear.put(courseId, 2);
+      } else if (courseId < 44) {
+        courseMapYear.put(courseId, 3);
+      } else {
+        // special case for course 44
+        courseMapYear.put(courseId, 0);
+      }
+    }
+
+    classStudents = new HashMap<Integer, Integer>();
+    for (int course = 0; course < 45; course++) {
+      int students = 0;
+      for (Integer orientation : orientationStudents.keySet()) {
+        if (courseMapOrientation.get(course).contains(orientation)) {
+          students += orientationStudents.get(orientation);
+        }
+      }
+      int year = courseMapYear.get(course);
+      students = (int) (students * attendanceFactor.get(year));
+      classStudents.put(course, students);
+    }
+  }
+
+  // public helper functions
+  // given the *value* of a cell returns the course
+  public int getClassCourse(Integer classWithType) {
+    return classWithType / 10;
+  }
+  // given the *value* of a cell returns the type
+  public int getClassType(Integer classWithType) {
+    return classWithType % 10;
+  }
+  // returns the fraction of classes of the given type for the given course
+  public Float getTypeProportionInCourse(int type, int course) {
+    return (1f / courseMapClasses.get(course).get(type));
+  }
+  // given an index of the solution returns the corresponding classroom
+  public int getClassroom(int cellIndex) {
+    return (cellIndex / 60);
+  }
+  // given a cellIndex and a solution returns if the value in cellIndex has a pair
+  public boolean hasPair(int cellIndex, IntegerSolution solution) {
+    return ((solution.getVariableValue(cellIndex) + 10) != 0 &&
+        solution.getVariableValue(cellIndex)+10 == solution.getVariableValue(cellIndex));
+  }
+  // returns if the index has a class
+  public boolean indexHasClass(int cellIndex, IntegerSolution solution) {
+    return (solution.getVariableValue(cellIndex) != 0);
+  }
+  // given an index of the matrix returns the day
+  public int getDay(int index) {
+    return (index % 10)/2;
+  }
+  // given an index of the matrix returns the Turn
+  public int getTurn(int index) {
+    return (index / 20) % 3;
+  }
+  // returns wether the given index is an index class or a pair class
+  public boolean isIndexClass(int index) {
+    return (index % 20) < 10;
+  }
+
+  // public getters of fields for other modules
+  public int getCellsInMatrix() {
+    return cellsInMatrix;
+  }
+
+  public int getAmountCourses() {
+    return amountCourses;
+  }
+
+  public int getDisparityFactor() {
+    return disparityFactor;
+  }
+
+  public HashMap<Integer, HashSet<Integer>> getCourseMapOrientation() {
+    return courseMapOrientation;
+  }
+
+  public HashMap<Integer, ArrayList<Integer>> getCourseMapClasses() {
+    return courseMapClasses;
+  }
+
+  public HashMap<String, Integer> getClassroomCapacity() {
+    return classroomCapacity;
+  }
+
+  public HashMap<Integer, String> getClassroomNameMap() {
+    return classroomNameMap;
+  }
+
+  public HashMap<Integer, Integer> getClassStudents() {
+    return classStudents;
+  }
+
+  public HashMap<Integer, Integer> getOrientationStudents() {
+    return orientationStudents;
+  }
+
+  public HashMap<Integer, Float> getAttendanceFactor() {
+    return attendanceFactor;
+  }
+
+  public HashMap<Integer, Integer> getCourseMapYear() {
+    return courseMapYear;
   }
 }
