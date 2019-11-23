@@ -156,8 +156,10 @@ public class ScheduleDataHandler {
   }
   // given a cellIndex and a solution returns if the value in cellIndex has a pair
   public boolean hasPair(int cellIndex, IntegerSolution solution) {
-    return ((solution.getVariableValue(cellIndex) + 10) != 0 &&
-        solution.getVariableValue(cellIndex)+10 == solution.getVariableValue(cellIndex));
+    boolean thereIsAPair = (solution.getVariableValue(cellIndex) + 10) != 0;
+    int locationPairIsPointing = solution.getVariableValue(solution.getVariableValue(cellIndex+10)+10);
+    boolean pairIsPointingAtMe = locationPairIsPointing == cellIndex;
+    return (thereIsAPair && pairIsPointingAtMe);
   }
   // returns if the index has a class
   public boolean indexHasClass(int cellIndex, IntegerSolution solution) {

@@ -6,7 +6,7 @@ import org.uma.jmetal.solution.impl.DefaultIntegerSolution;
 import org.uma.jmetal.util.scheduledata.ScheduleDataHandler;
 
 public class ScheduleDataHandlerTest {
-  public void main(String[] args) throws Exception {
+  public static void main(String[] args) throws Exception {
     System.out.println("-----------------------------");
     System.out.println("TESTEANDO CLASE DATA HANDLER");
     System.out.println("-----------------------------");
@@ -14,6 +14,9 @@ public class ScheduleDataHandlerTest {
     ScheduleDataHandler handler = new ScheduleDataHandler();
     Schedule problem = new Schedule(handler);
     IntegerSolution solution = new DefaultIntegerSolution(problem);
+    for (int i = 0; i < 1110; i++) {
+      solution.setVariableValue(i, 0);
+    }
     
     solution.setVariableValue(1, 11);
     solution.setVariableValue(11, 121);
@@ -43,7 +46,7 @@ public class ScheduleDataHandlerTest {
     }
     
     System.out.println("Probando la funcion getTypeProportionInCourse");
-    if (handler.getTypeProportionInCourse(7, 1) == 1f/12){
+    if (handler.getTypeProportionInCourse(1, 7) == 1f/12){
       System.out.println("OK");
     } else {
       System.out.println("ERROR! ESPERABA 0.083 OBTUVE " + handler.getTypeProportionInCourse(7, 1));
@@ -57,10 +60,10 @@ public class ScheduleDataHandlerTest {
     }
     
     System.out.println("Probando la funcion hasPair");
-    if (handler.hasPair(11, solution) == true) {
+    if (handler.hasPair(1, solution) == true) {
       System.out.println("OK");
     } else {
-      System.out.println("ERROR! ESPERABA true PARA EL INDICE 11 Y OBTUVE " + handler.hasPair(11, solution));
+      System.out.println("ERROR! ESPERABA true PARA EL INDICE 1 Y OBTUVE " + handler.hasPair(11, solution));
     }
     if (handler.hasPair(126, solution) == false) {
       System.out.println("OK");
