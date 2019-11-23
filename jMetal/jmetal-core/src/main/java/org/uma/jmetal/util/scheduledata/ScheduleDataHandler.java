@@ -301,6 +301,7 @@ public class ScheduleDataHandler {
   }
 
   // function that swaps two classes if said swap is feasible
+  // assumes victim is good to go
   public IntegerSolution swapFeasibleClassroom(int victim,
                                                 int cellIndex,
                                                 IntegerSolution originalSolution) {
