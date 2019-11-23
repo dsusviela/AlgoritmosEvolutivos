@@ -284,7 +284,7 @@ public class ScheduleDataHandler {
     return victimSet;
   }
 
-  private int chooseVictim(HashSet<Integer> victimSet, IntegerSolution solution) {
+  public int chooseVictim(HashSet<Integer> victimSet, IntegerSolution solution) {
     // note that the possibleVictim set cant be empty, if it is then theres no classroom that
     // can accommodate attending students which would result in a very bad thing
     int victim = -1;

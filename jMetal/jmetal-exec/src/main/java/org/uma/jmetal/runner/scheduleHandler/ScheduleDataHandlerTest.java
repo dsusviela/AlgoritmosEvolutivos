@@ -142,7 +142,15 @@ public class ScheduleDataHandlerTest {
         handler.getVictimSetTurnDay(1, attendingStudents, solution).contains(481)) {
       System.out.println("OK");
     } else {
-      System.out.println("ERROR! LOS SALONES ESPERADOS ERAN 480 Y 481 OBTUVE " + handler.getVictimSetTurnDay(1, attendingStudents, solution));
+      System.out.println("ERROR! LOS INDICES ESPERADOS ERAN 480 Y 481 OBTUVE " + handler.getVictimSetTurnDay(1, attendingStudents, solution));
     }
+
+    System.out.println("testeando funcion de seleccion de victimas");
+    if (handler.chooseVictim(handler.getVictimSetTurnDay(1, attendingStudents, solution), solution) == 480) {
+      System.out.println("OK");
+    } else {
+      System.out.println("ERROR! LA VICTIMA ESPERADA ES 480 Y OBTUVE " + handler.chooseVictim(handler.getVictimSetTurnDay(1, attendingStudents, solution), solution));
+    }
+
   }
 }
