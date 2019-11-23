@@ -267,7 +267,8 @@ public class ScheduleDataHandler {
       // check if its not the same cell or if its empty
       // note that all empty indexes were discarded in parent function
       if (getClassroom(cellCandidate) == classroom ||
-          solution.getVariableValue(cellCandidate) == 0) {
+          solution.getVariableValue(cellCandidate) == 0 ||
+          cellCandidate == solution.getVariableValue(cellIndex + 10)) {
         // we should continue
         skipDay = !skipDay;
         continue;
@@ -278,6 +279,7 @@ public class ScheduleDataHandler {
       if (attendingStudents < candidateCapacity) {
         victimSet.add(cellCandidate);
       }
+      skipDay = !skipDay;
     }
     return victimSet;
   }
