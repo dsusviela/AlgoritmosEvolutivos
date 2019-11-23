@@ -136,16 +136,15 @@ public class ScheduleDataHandlerTest {
 
     System.out.println("testeando funcion de victimas para un turno y dia fijo");
     HashSet<Integer> expectedVictims = new HashSet<Integer>();
-    for(int i = 1; i < handler.getClassroomCapacity().keySet().size(); i++) {
-        expectedVictims.add(i);
-    }
+    expectedVictims.add(480);
+    expectedVictims.add(481);
     int attendingStudents = handler.getAttendingStudents(solution.getVariableValue(1));
     solution.setVariableValue(480, 11);
     solution.setVariableValue(481, 21);
     if (handler.getVictimSetTurnDay(1, attendingStudents, solution).equals(expectedVictims)) {
       System.out.println("OK");
     } else {
-      System.out.println("ERROR! LOS SALONES OBTUVE " + handler.getVictimSetTurnDay(1, attendingStudents, solution));
+      System.out.println("ERROR! SE ESPERABAN LAS VICTIMAS 480 Y 481 OBTUVE " + handler.getVictimSetTurnDay(1, attendingStudents, solution));
     }
   }
 }
