@@ -12,6 +12,7 @@ import org.uma.jmetal.solution.util.RepairDoubleSolutionAtBounds;
 import org.uma.jmetal.util.JMetalException;
 import org.uma.jmetal.util.pseudorandom.JMetalRandom;
 import org.uma.jmetal.util.pseudorandom.RandomGenerator;
+//import org.uma.jmetal.problem.singleobjective.Schedule;
 
 /**
  * This class implements a polynomial mutation operator to be applied to Integer
@@ -29,6 +30,7 @@ import org.uma.jmetal.util.pseudorandom.RandomGenerator;
 public class ScheduleMutation implements MutationOperator<IntegerSolution> {
     private static final double DEFAULT_PROBABILITY = 0.01;
 
+    // private Schedule schedule;
     private double mutationProbability;
     private RepairDoubleSolution solutionRepair;
     private RandomGenerator<Double> randomGenerator;
@@ -126,6 +128,29 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
                         int cellPairValue = solution.getVariableValue(cellPair);
                         int victimPair = solution.getVariableValue(victims.getFirst() + 10);
                         int victimPairValue = solution.getVariableValue(victimPair);
+                        int dist = victims.getFirst() - cell;
+                        int pairDestination = 0;
+
+                        // Solve collisions with the cell's pair
+                        if (solution.getVariableValue(cellPair + dist) == 0) {
+                            pairDestination = cellPair + dist;
+                        } else {
+                            int otherClassroom = findFeasibleClassroom(solution, cellPair, cellPair + dist);
+                            if (otherClassroom >= 0) {
+
+                            } else {
+                                int otherDay = findFeasibleDay(solution, cellPair, cellPair + dist);
+                                if (otherDay >= 0) {
+
+                                } else {
+                                    int otherDayAndClassroom = findFeasibleDayAndClassroom(solution, cellPair,
+                                            cellPair + dist);
+                                }
+                            }
+                        }
+
+                        solution.setVariableValue(pairDestination, cellPairValue);
+                        solution.setVariableValue(cellPair, 0);
 
                         // TODO: Resolver colisiones
                         solution.setVariableValue(cellPair, solution.getVariableValue(victimPair));
@@ -259,6 +284,21 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
                 res.add(victim);
             }
         }
+        return res;
+    }
+
+    int findFeasibleClassroom(IntegerSolution solution, int cellToMove, int originalDestination) {
+        int res = -1;
+        return res;
+    }
+
+    int findFeasibleDay(IntegerSolution solution, int cellToMove, int originalDestination) {
+        int res = -1;
+        return res;
+    }
+
+    int findFeasibleDayAndClassroom(IntegerSolution solution, int cellToMove, int originalDestination) {
+        int res = -1;
         return res;
     }
 }
