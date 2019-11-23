@@ -225,12 +225,33 @@ public class ScheduleDataHandler {
       skipDay = !skipDay;
     }
     // no empty classes were found, looking to swap
-    return swapFeasibleClassroom(attendingStudents, cellIndex, solution);
+    HashSet<Integer> victimSet = getVictimSetTurnDay(cellIndex, attendingStudents, solution);
+    if (victimSet.isEmpty()) {
+      // we cant swap, so we return null
+      return null;
+    } else {
+      int victim = chooseVictim(attendingStudents, victimSet, solution);
+      return swapFeasibleClassroom(attendingStudents, cellIndex, solution);
+    }
   }
 
-  private IntegerSolution swapFeasibleClassroom(int attendingStudents,
-                                                int cellIndex,
-                                                IntegerSolution originalSolution) {
+  private int chooseVictim(int attendingStudents, HashSet<Integer> victimSet, IntegerSolution solution) {
+    // note that the possibleVictim set cant be empty, if it is then theres no classroom that
+    // can accommodate attending students which would result in a very bad thing
+    int victim = -1;
+    int victimAttendance = attendingStudents;
+    for (Integer possibleVictim : victimSet) {
+      int victimClassWithType = solution.getVariableValue(possibleVictim);
+      int attendance = getAttendingStudents(victimClassWithType);
+      if (attendance < victimAttendance) {
+        victim = possibleVictim;
+        victimAttendance = attendance;
+      }
+    }
+    return victim;
+  }
+
+  public HashSet<Integer> getVictimSetTurnDay(int cellIndex, int attendingStudents, IntegerSolution originalSolution) {
     IntegerSolution solution = (IntegerSolution) originalSolution.copy();
     int turn = getTurn(cellIndex);
     int day = getDay(cellIndex);
@@ -238,7 +259,7 @@ public class ScheduleDataHandler {
     HashSet<Integer> victimSet = new HashSet<Integer>();
     boolean skipDay = true;
     for (int cellCandidate = startingCell; cellCandidate < cellsInMatrix;
-         cellCandidate += (skipDay ? 59 : 1)) {
+        cellCandidate += (skipDay ? 59 : 1)) {
       // check if its not the same cell or if its empty
       // note that all empty indexes were discarded in parent function
       if (cellIndex == cellCandidate ||
@@ -254,18 +275,16 @@ public class ScheduleDataHandler {
         victimSet.add(cellCandidate);
       }
     }
-    // note that the possibleVictim set cant be empty, if it is then theres no classroom that
-    // can accommodate attending students
-    int victim = -1;
-    int victimAttendance = attendingStudents;
-    for (Integer possibleVictim : victimSet) {
-      int victimClassWithType = solution.getVariableValue(possibleVictim);
-      int attendance = getAttendingStudents(victimClassWithType);
-      if (attendance < victimAttendance) {
-        victim = possibleVictim;
-        victimAttendance = attendance;
-      }
-    }
+    return victimSet;
+  }
+  
+
+  private IntegerSolution swapFeasibleClassroom(int victim,
+                                                int cellIndex,
+                                                IntegerSolution originalSolution) {
+    IntegerSolution solution = (IntegerSolution) originalSolution.copy();
+    int victimClassWithType = solution.getVariableValue(victim);
+    int victimAttendance = getAttendingStudents(victimClassWithType);
     // we now have a victim, we can swap the victim with the origin
     // first we check if the swap is possible
     int originCapacity = getClassroomCapacity(getClassroom(cellIndex));
@@ -310,7 +329,6 @@ public class ScheduleDataHandler {
 
   public IntegerSolution findFeasibleDay(int cellIndex, IntegerSolution originalSolution) {
     IntegerSolution solution = (IntegerSolution) originalSolution.copy();
-    int classWithType = solution.getVariableValue(cellIndex);
     // note that the classroom already fits the amount of students
     // we need to find another day for this class in the same room at the same turn
     int turn = getTurn(cellIndex);
@@ -334,13 +352,11 @@ public class ScheduleDataHandler {
       }
     }
     // we didnt find a slot, we must perform a swap
-    
     return solution;
   }
 
   private HashSet<Integer> getCandidateDaysForPair(int cellIndex, IntegerSolution solution) {
     HashSet<Integer> result = new HashSet<Integer>();
-    int cellPair = solution.getVariableValue(cellIndex + 10);
     int day = getDay(cellIndex);
     for (int candidateDay = 0; candidateDay < 5; candidateDay++) {
       if (1 < distanceBetweenDays(candidateDay, day)) {
