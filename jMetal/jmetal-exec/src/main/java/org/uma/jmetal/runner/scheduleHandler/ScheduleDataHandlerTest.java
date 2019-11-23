@@ -164,7 +164,7 @@ public class ScheduleDataHandlerTest {
     solution.setVariableValue(190, 480);
     solution.setVariableValue(490, 180);
     // new cells added for swap
-    solution.setVariableValue(840, 27);
+    solution.setVariableValue(840, 21);
     solution.setVariableValue(850, 840);
     swappedSol = handler.swapFeasibleClassroom(840, 480, solution);
     if (swappedSol != null) {
