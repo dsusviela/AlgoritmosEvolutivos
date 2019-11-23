@@ -53,23 +53,43 @@ public class Schedule extends AbstractIntegerProblem {
   private IntegerSolution createFeasibleSolution(IntegerSolution solution) {
     solution = checkClassroomCapacity(solution);
     solution = checkPairsDay(solution);
-    solution = checkTurnDay(solution);
+    //solution = checkTurnDay(solution);
     return solution;
   }
 
-  private IntegerSolution checkClassroomCapacity(IntegerSolution solution) {
+  private IntegerSolution checkClassroomCapacity(IntegerSolution originalSolution) {
+    IntegerSolution solution = (IntegerSolution) originalSolution.copy();
     for (int cellIndex = 0; cellIndex < cellsInMatrix; cellIndex++) {
       // we only want to iterate in the cells that have classes
-      if (handler.isIndexClass(cellIndex) && handler.indexHasClass(cellIndex, solution)) {
+      if (handler.isIndexClass(cellIndex) && handler.indexHasClass(cellIndex, originalSolution)) {
         int classroom = handler.getClassroom(cellIndex);
         int capacity = handler.getClassroomCapacity(classroom);
-        int attendingStudents = handler.getAttendingStudents(solution.getVariableValue(cellIndex));
+        int attendingStudents = handler.getAttendingStudents(originalSolution.getVariableValue(cellIndex));
         // we now check if theres a capacity conflict
         if (capacity < attendingStudents) {
           // conflict resolution
           int turn = handler.getTurn(cellIndex);
           int day = handler.getDay(cellIndex);
           solution = handler.findFeasibleClassroom(attendingStudents, cellIndex, solution);
+        }
+      }
+    }
+    return solution;
+  }
+
+  private IntegerSolution checkPairsDay(IntegerSolution solution) {
+    HashSet<Integer> evaluated = new HashSet<Integer>();
+    for (int cellIndex = 0; cellIndex < cellsInMatrix; cellIndex++) {
+      // we only need to check for pairs that havent been evaluated before
+      if (handler.isIndexClass(cellIndex) && handler.hasPair(cellIndex, solution)
+          && !evaluated.contains(cellIndex)) {
+        int day = handler.getDay(cellIndex);
+        int dayPair = handler.getDay(solution.getVariableValue(cellIndex + 10));
+        evaluated.add(cellIndex);
+        evaluated.add(cellIndex + 10);
+        // we need to check for feasibility
+        if (handler.distanceBetweenDays(day, dayPair) < 2) {
+          solution = handler.findFeasibleDay(cellIndex, solution);
         }
       }
     }

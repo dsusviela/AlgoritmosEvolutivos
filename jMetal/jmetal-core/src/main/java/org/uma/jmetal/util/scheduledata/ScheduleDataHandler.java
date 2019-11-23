@@ -175,22 +175,124 @@ public class ScheduleDataHandler {
   public boolean isIndexClass(int index) {
     return (index % 20) < 10;
   }
-
-  public IntegerSolution findFeasibleClassroom(int attendingStudents,
-                                                int cellIndex,
-                                                IntegerSolution solution) {
-    for (int cellCandidate = 0; cellCandidate < cellsInMatrix; cellCandidate++) {
-
-    }
-    return solution;
+  // given 2 days returns the amount of days between them
+  public int distanceBetweenDays(int day, int dayPair) {
+    return Math.abs((day - dayPair));
   }
 
   public IntegerSolution findFeasibleClassroom(int cellIndex,
-                                                IntegerSolution solution) {
-    int classroom = getClassroom(cellIndex);
-    int capacity = classroomCapacity.get(classroom);
+                                               IntegerSolution solution) {
     int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
-    return solution;
+    return findFeasibleClassroom(attendingStudents, cellIndex, solution);
+  }
+
+  public IntegerSolution findFeasibleClassroom(int attendingStudents,
+                                               int cellIndex,
+                                               IntegerSolution originalSolution) {
+    IntegerSolution solution = (IntegerSolution) originalSolution.copy(); // debug: cast may not be the way
+    int turn = getTurn(cellIndex);
+    int day = getDay(cellIndex);
+    int startingCell = day*2 + turn*20;
+    boolean skipDay = true;
+    for (int cellCandidate = startingCell; cellCandidate < cellsInMatrix;
+         cellCandidate += (skipDay ? 59 : 1)) {
+      // check if candidate is available
+      if (solution.getVariableValue(cellCandidate) == 0) {
+        // get the capacity of the candidate
+        int classroom = getClassroom(cellIndex);
+        int capacity = getClassroomCapacity(classroom);
+        if (attendingStudents <= capacity) {
+          // candidate is fit for insertion
+          int classOrigin = solution.getVariableValue(cellIndex);
+          int classPair = solution.getVariableValue(cellIndex + 10);
+          int cellCandidatePair = cellCandidate + 10;
+          // make the insertion
+          solution.setVariableValue(cellCandidate, classOrigin);
+          if (hasPair(cellIndex, originalSolution)) {
+            solution.setVariableValue(cellCandidatePair, classPair);
+          } else {
+            solution.setVariableValue(cellCandidatePair, cellCandidate);
+          }
+          solution.setVariableValue(cellIndex, 0);
+          solution.setVariableValue(cellIndex + 10, 0);
+          // pair should now point to the new value
+          if (hasPair(cellIndex, originalSolution)) {
+            solution.setVariableValue(classPair + 10, cellCandidate);
+          }
+          return solution;
+        }
+      }
+      skipDay = !skipDay;
+    }
+    // no empty classes were found, looking to swap
+    return swapFeasibleClassroom(attendingStudents, cellIndex, solution);
+  }
+
+  private IntegerSolution swapFeasibleClassroom(int attendingStudents,
+                                                int cellIndex,
+                                                IntegerSolution originalSolution) {
+    IntegerSolution solution = (IntegerSolution) originalSolution.copy();
+    int turn = getTurn(cellIndex);
+    int day = getDay(cellIndex);
+    int startingCell = day*2 + turn*20;
+    HashSet<Integer> victimSet = new HashSet<Integer>();
+    boolean skipDay = true;
+    for (int cellCandidate = startingCell; cellCandidate < cellsInMatrix;
+         cellCandidate += (skipDay ? 59 : 1)) {
+      // check if its not the same cell or if its empty
+      // note that all empty indexes were discarded in parent function
+      if (cellIndex == cellCandidate ||
+          solution.getVariableValue(cellCandidate) == 0) {
+        // we should continue
+        skipDay = !skipDay;
+        continue;
+      }
+      // add the class to the victim list
+      int candidateClassroom = getClassroom(cellCandidate);
+      int candidateCapacity = getClassroomCapacity(candidateClassroom);
+      if (attendingStudents < candidateCapacity) {
+        victimSet.add(cellCandidate);
+      }
+    }
+    // note that the possibleVictim set cant be empty, if it is then theres no classroom that
+    // can accommodate attending students
+    int victim = -1;
+    int victimAttendance = attendingStudents;
+    for (Integer possibleVictim : victimSet) {
+      int victimClassWithType = solution.getVariableValue(possibleVictim);
+      int attendance = getAttendingStudents(victimClassWithType);
+      if (attendance < victimAttendance) {
+        victim = possibleVictim;
+        victimAttendance = attendance;
+      }
+    }
+    // we now have a victim, we can swap the victim with the origin
+    // first we check if the swap is possible
+    int originCapacity = getClassroomCapacity(getClassroom(cellIndex));
+    if (victimAttendance <= originCapacity) {
+      // initialize variables
+      int victimCopy = solution.getVariableValue(victim);
+      int vicitmPairCopy = solution.getVariableValue(victim + 10);
+      int originalValue = solution.getVariableValue(cellIndex);
+      int originalPairValue = solution.getVariableValue(cellIndex + 10);
+      // perform the swap
+      solution.setVariableValue(victim, originalValue);
+      solution.setVariableValue(cellIndex, victimCopy);
+      if (hasPair(victim, originalSolution)) {
+        solution.setVariableValue(cellIndex + 10, vicitmPairCopy);
+        // pair now should reference new value
+        solution.setVariableValue(vicitmPairCopy + 10, cellIndex);
+      }
+      if (hasPair(cellIndex, originalSolution)) {
+        solution.setVariableValue(victim + 10, originalPairValue);
+        // pair now should reference new value
+        solution.setVariableValue(originalPairValue + 10, victim);
+      }
+      return solution;
+    } else {
+      // no eligible victims were found
+      return null;
+    }
   }
 
   public int getAttendingStudents(Integer classWithType) {
@@ -204,6 +306,48 @@ public class ScheduleDataHandler {
     amountOfStudents = (int) (getAttendanceFactor().get(year) *
         amountOfStudents * getTypeProportionInCourse(type, course));
     return amountOfStudents;
+  }
+
+  public IntegerSolution findFeasibleDay(int cellIndex, IntegerSolution originalSolution) {
+    IntegerSolution solution = (IntegerSolution) originalSolution.copy();
+    int classWithType = solution.getVariableValue(cellIndex);
+    // note that the classroom already fits the amount of students
+    // we need to find another day for this class in the same room at the same turn
+    int turn = getTurn(cellIndex);
+    int classroom = getClassroom(cellIndex);
+    HashSet<Integer> candidateDays = getCandidateDaysForPair(cellIndex, solution);
+    // we iterate through all the classroom slots for the same turn as the original
+    for (Integer day : candidateDays) {
+      int candidateCell = 60*classroom + 20*turn + 2*day;
+      // if its not the same as the original and its available
+      if (candidateCell != classroom &&
+          solution.getVariableValue(candidateCell) == 0) {
+        // we can perform the swap
+        int originalValue = solution.getVariableValue(cellIndex);
+        int originalPair = solution.getVariableValue(cellIndex + 10);
+        solution.setVariableValue(candidateCell, originalValue);
+        solution.setVariableValue(candidateCell + 10, originalPair);
+        // now we must make the pair point at the new cell
+        // note that the pair always exists, else we wouldnt need for the function call
+        solution.setVariableValue(originalPair + 10, candidateCell);
+        return solution;
+      }
+    }
+    // we didnt find a slot, we must perform a swap
+    
+    return solution;
+  }
+
+  private HashSet<Integer> getCandidateDaysForPair(int cellIndex, IntegerSolution solution) {
+    HashSet<Integer> result = new HashSet<Integer>();
+    int cellPair = solution.getVariableValue(cellIndex + 10);
+    int day = getDay(cellIndex);
+    for (int candidateDay = 0; candidateDay < 5; candidateDay++) {
+      if (1 < distanceBetweenDays(candidateDay, day)) {
+        result.add(candidateDay);
+      }
+    }
+    return result;
   }
 
   // default instance
