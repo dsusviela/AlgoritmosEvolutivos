@@ -117,10 +117,10 @@ public class ScheduleDataHandlerTest {
     }
 
     System.out.println("Probando la funcion getAttendingStudents");
-    if (handler.getAttendingStudents(01) == 2) {
+    if (handler.getAttendingStudents(01) == 139) {
       System.out.println("OK");
     } else {
-      System.out.println("ERROR! ESPERABA 2 PARA LA CLASE 01 OBTUVE " + handler.distanceBetweenDays(0, 3));
+      System.out.println("ERROR! ESPERABA 2 PARA LA CLASE 01 OBTUVE " + handler.getAttendingStudents(01));
     }
   }
 }
