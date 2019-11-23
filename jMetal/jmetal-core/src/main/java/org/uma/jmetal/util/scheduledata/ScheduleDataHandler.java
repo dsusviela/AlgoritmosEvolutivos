@@ -176,6 +176,21 @@ public class ScheduleDataHandler {
     return (index % 20) < 10;
   }
 
+  private IntegerSolution findFeasibleClassroom(int attendingStudents,
+                                                int cellIndex,
+                                                IntegerSolution solution) {
+    for (int cellCandidate = 0; cellCandidate < cellsInMatrix; cellCandidate++) {
+
+    }
+    return solution;
+  }
+
+  private IntegerSolution findFeasibleClassroom(int cellIndex,
+                                                IntegerSolution solution) {
+    
+    return solution;
+  }
+
   // default instance
   // creates an instance problem
   public void generateInstance() {
