@@ -246,7 +246,7 @@ public class ScheduleDataHandler {
       return null;
     } else {
       // we chose a victim and return it
-      int victim = chooseVictim(attendingStudents, victimSet, solution);
+      int victim = chooseVictim(victimSet, solution);
       return swapFeasibleClassroom(victim, cellIndex, solution);
     }
   }
@@ -279,11 +279,11 @@ public class ScheduleDataHandler {
     return victimSet;
   }
 
-  private int chooseVictim(int attendingStudents, HashSet<Integer> victimSet, IntegerSolution solution) {
+  private int chooseVictim(HashSet<Integer> victimSet, IntegerSolution solution) {
     // note that the possibleVictim set cant be empty, if it is then theres no classroom that
     // can accommodate attending students which would result in a very bad thing
     int victim = -1;
-    int victimAttendance = attendingStudents;
+    int victimAttendance = Integer.MAX_VALUE;
     for (Integer possibleVictim : victimSet) {
       int victimClassWithType = solution.getVariableValue(possibleVictim);
       int attendance = getAttendingStudents(victimClassWithType);
@@ -356,8 +356,34 @@ public class ScheduleDataHandler {
       }
     }
     // we didnt find a slot, we must perform a swap
-    HashSet<Integer> victimSet = getVictimSetTurnDay();
-    return solution;
+    int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
+    HashSet<Integer> victimSet = getVictimSetTurnClassroom(cellIndex, attendingStudents, solution);
+    if (victimSet.isEmpty()) {
+      return null;
+    } else {
+      // we must perform the swap
+      int victim = chooseVictim(victimSet, solution);
+      return swapFeasibleClassroom(victim, cellIndex, originalSolution);
+    }
+  }
+
+  private HashSet<Integer> getVictimSetTurnClassroom(int cellIndex, 
+                                                     int attendingStudents,
+                                                     IntegerSolution solution) {
+    // initialize variables
+    HashSet<Integer> victimSet = new HashSet<Integer>();
+    HashSet<Integer> candidateDays = getCandidateDaysForPair(cellIndex, solution);
+    int classroom = getClassroom(cellIndex);
+    int turn = getTurn(cellIndex);
+    for (Integer day : candidateDays) {
+      int possibleVictim = 60*classroom + 20*turn + 2*day;
+      // we must find classes in the same classroom to swap
+      if (possibleVictim != cellIndex && 
+          solution.getVariableValue(possibleVictim) != 0) {
+        victimSet.add(possibleVictim);
+      }
+    }
+    return victimSet;
   }
 
   private HashSet<Integer> getCandidateDaysForPair(int cellIndex, IntegerSolution solution) {
