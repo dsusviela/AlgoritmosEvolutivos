@@ -258,6 +258,7 @@ public class ScheduleDataHandler {
     IntegerSolution solution = (IntegerSolution) originalSolution.copy();
     int turn = getTurn(cellIndex);
     int day = getDay(cellIndex);
+    int classroom = getClassroom(cellIndex);
     int startingCell = day*2 + turn*20;
     HashSet<Integer> victimSet = new HashSet<Integer>();
     boolean skipDay = true;
@@ -265,7 +266,7 @@ public class ScheduleDataHandler {
         cellCandidate += (skipDay ? 59 : 1)) {
       // check if its not the same cell or if its empty
       // note that all empty indexes were discarded in parent function
-      if (cellIndex == cellCandidate ||
+      if (getClassroom(cellCandidate) == classroom ||
           solution.getVariableValue(cellCandidate) == 0) {
         // we should continue
         skipDay = !skipDay;
