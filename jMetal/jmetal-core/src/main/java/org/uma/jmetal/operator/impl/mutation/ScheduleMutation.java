@@ -35,6 +35,7 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
     private RepairDoubleSolution solutionRepair;
     private RandomGenerator<Double> randomGenerator;
     private boolean[] evaluated;
+    private ScheduleDataHandler data;
 
     /** Constructor */
     public ScheduleMutation() {
@@ -92,6 +93,7 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
     private void doMutation(double probability, IntegerSolution solution) {
         evaluated = new boolean[solution.getNumberOfVariables()];
         LinkedList<Integer> victims = new LinkedList<Integer>();
+        int oldCellValue, oldCellPair;
 
         // For each cell
         for (int cell = 0; cell < solution.getNumberOfVariables(); cell++) {
@@ -119,42 +121,91 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
                     }
                     Collections.shuffle(victims);
 
+                    // Swap the cells and the pair references
+                    oldCellValue = solution.getVariableValue(cell);
+                    oldCellPair = solution.getVariableValue(cell + 10);
                     solution.setVariableValue(cell, solution.getVariableValue(victims.getFirst()));
-                    solution.setVariableValue(victims.getFirst(), solution.getVariableValue(cell));
+                    solution.setVariableValue(cell + 10, solution.getVariableValue(victims.getFirst() + 10));
+                    solution.setVariableValue(victims.getFirst(), oldCellValue);
+                    solution.setVariableValue(victims.getFirst() + 10, oldCellPair);
 
                     // Only in turn mutation, the pairs are exchanged too
                     if (mutationType == 1) {
+                        IntegerSolution altSolution;
                         int cellPair = solution.getVariableValue(cell + 10);
                         int cellPairValue = solution.getVariableValue(cellPair);
                         int victimPair = solution.getVariableValue(victims.getFirst() + 10);
                         int victimPairValue = solution.getVariableValue(victimPair);
                         int dist = victims.getFirst() - cell;
-                        int pairDestination = 0;
 
                         // Solve collisions with the cell's pair
                         if (solution.getVariableValue(cellPair + dist) == 0) {
-                            pairDestination = cellPair + dist;
+                            // Swap the cells and the pair references
+                            solution.setVariableValue(cellPair + dist, cellPairValue);
+                            solution.setVariableValue(cellPair + dist + 10, solution.getVariableValue(cellPair + 10));
+                            solution.setVariableValue(cellPair, 0);
+                            solution.setVariableValue(cellPair + 10, 0);
                         } else {
-                            int otherClassroom = findFeasibleClassroom(solution, cellPair, cellPair + dist);
-                            if (otherClassroom >= 0) {
-
-                            } else {
-                                int otherDay = findFeasibleDay(solution, cellPair, cellPair + dist);
-                                if (otherDay >= 0) {
-
+                            // Save the current value in the conflicting cell
+                            int aux = solution.getVariableValue(cellPair + dist);
+                            // Just override the current value with the pair value
+                            solution.setVariableValue(cellPair + dist, cellPairValue);
+                            altSolution = data.findFeasibleClassroom(solution, cellPair);
+                            if (altSolution == null) {
+                                altSolution = data.findFeasibleDay(solution, cellPair);
+                                if (altSolution == null) {
+                                    altSolution = data.findFeasibleDayAndClassroom(solution, cellPair);
+                                    // findFeasibleDayAndClassroom leaves the parameter cell empty, so now I can put
+                                    // the original value again there
+                                    solution.setVariableValue(cellPair + dist, aux);
                                 } else {
-                                    int otherDayAndClassroom = findFeasibleDayAndClassroom(solution, cellPair,
-                                            cellPair + dist);
+                                    // findFeasibleDay leaves the parameter cell empty, so now I can put the
+                                    // original value again there
+                                    solution.setVariableValue(cellPair + dist, aux);
                                 }
+                            } else {
+                                // findFeasibleClassroom leaves the parameter cell empty, so now I can put the
+                                // original value again there
+                                solution.setVariableValue(cellPair + dist, aux);
                             }
+
+                            solution = altSolution;
                         }
 
-                        solution.setVariableValue(pairDestination, cellPairValue);
-                        solution.setVariableValue(cellPair, 0);
+                        // Solve collisions with the victim's pair
+                        if (solution.getVariableValue(victimPair + dist) == 0) {
+                            // Swap the victims and the pair references
+                            solution.setVariableValue(victimPair + dist, victimPairValue);
+                            solution.setVariableValue(victimPair + dist + 10,
+                                    solution.getVariableValue(victimPair + 10));
+                            solution.setVariableValue(victimPair, 0);
+                            solution.setVariableValue(victimPair + 10, 0);
+                        } else {
+                            // Save the current value in the conflicting victim
+                            int aux = solution.getVariableValue(victimPair + dist);
+                            // Just override the current value with the pair value
+                            solution.setVariableValue(victimPair + dist, victimPairValue);
+                            altSolution = data.findFeasibleClassroom(solution, victimPair);
+                            if (altSolution == null) {
+                                altSolution = data.findFeasibleDay(solution, victimPair);
+                                if (altSolution == null) {
+                                    altSolution = data.findFeasibleDayAndClassroom(solution, victimPair);
+                                    // findFeasibleDayAndClassroom leaves the parameter victim empty, so now I can
+                                    // put the original value again there
+                                    solution.setVariableValue(victimPair + dist, aux);
+                                } else {
+                                    // findFeasibleDay leaves the parameter victim empty, so now I can put the
+                                    // original value again there
+                                    solution.setVariableValue(victimPair + dist, aux);
+                                }
+                            } else {
+                                // findFeasibleClassroom leaves the parameter victim empty, so now I can put the
+                                // original value again there
+                                solution.setVariableValue(victimPair + dist, aux);
+                            }
 
-                        // TODO: Resolver colisiones
-                        solution.setVariableValue(cellPair, solution.getVariableValue(victimPair));
-                        solution.setVariableValue(victims.getFirst(), solution.getVariableValue(cellPair));
+                            solution = altSolution;
+                        }
                     }
                 }
             }
@@ -284,21 +335,6 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
                 res.add(victim);
             }
         }
-        return res;
-    }
-
-    int findFeasibleClassroom(IntegerSolution solution, int cellToMove, int originalDestination) {
-        int res = -1;
-        return res;
-    }
-
-    int findFeasibleDay(IntegerSolution solution, int cellToMove, int originalDestination) {
-        int res = -1;
-        return res;
-    }
-
-    int findFeasibleDayAndClassroom(IntegerSolution solution, int cellToMove, int originalDestination) {
-        int res = -1;
         return res;
     }
 }
