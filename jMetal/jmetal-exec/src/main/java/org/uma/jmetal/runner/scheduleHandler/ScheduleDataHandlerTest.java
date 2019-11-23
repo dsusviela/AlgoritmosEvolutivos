@@ -140,10 +140,12 @@ public class ScheduleDataHandlerTest {
         expectedVictims.add(i);
     }
     int attendingStudents = handler.getAttendingStudents(solution.getVariableValue(1));
+    solution.setVariableValue(480, 11);
+    solution.setVariableValue(481, 21);
     if (handler.getVictimSetTurnDay(1, attendingStudents, solution).equals(expectedVictims)) {
       System.out.println("OK");
     } else {
-      System.out.println("ERROR! ESPERABA TODAS LOS SALONES MENOS 0 OBTUVE " + handler.getVictimSetTurnDay(1, attendingStudents, solution));
+      System.out.println("ERROR! LOS SALONES OBTUVE " + handler.getVictimSetTurnDay(1, attendingStudents, solution));
     }
   }
 }
