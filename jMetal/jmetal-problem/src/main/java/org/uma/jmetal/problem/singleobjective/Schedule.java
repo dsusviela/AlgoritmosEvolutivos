@@ -63,40 +63,17 @@ public class Schedule extends AbstractIntegerProblem {
       if (handler.isIndexClass(cellIndex) && handler.indexHasClass(cellIndex, solution)) {
         int classroom = handler.getClassroom(cellIndex);
         int capacity = handler.getClassroomCapacity(classroom);
-        int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
+        int attendingStudents = handler.getAttendingStudents(solution.getVariableValue(cellIndex));
         // we now check if theres a capacity conflict
         if (capacity < attendingStudents) {
           // conflict resolution
           int turn = handler.getTurn(cellIndex);
           int day = handler.getDay(cellIndex);
-          solution = findBestClassroom(attendingStudents, day, turn, solution);
+          solution = handler.findFeasibleClassroom(attendingStudents, cellIndex, solution);
         }
       }
     }
     return solution;
-  }
-
-  private IntegerSolution findBestClassroom(int attendingStudents,
-                                            int day,
-                                            int turn,
-                                            IntegerSolution solution) {
-    for (int cellCandidate = 0; cellCandidate < cellsInMatrix; cellCandidate++) {
-
-    }
-    return solution;
-  }
-
-  private int getAttendingStudents(Integer classWithType) {
-    int type = handler.getClassType(classWithType);
-    int course = handler.getClassCourse(classWithType);
-    int amountOfStudents = 0;
-    for (Integer orientation : handler.getCourseMapOrientation().get(course)) {
-      amountOfStudents += handler.getOrientationStudents().get(orientation);
-    }
-    int year = handler.getCourseMapYear().get(course);
-    amountOfStudents = (int) (handler.getAttendanceFactor().get(year) *
-        amountOfStudents * handler.getTypeProportionInCourse(type, course));
-    return amountOfStudents;
   }
 
   private int overlap(int courseIndex1, int courseIndex2, IntegerSolution matrix) {

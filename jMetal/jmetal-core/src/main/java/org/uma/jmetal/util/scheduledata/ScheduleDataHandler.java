@@ -176,7 +176,7 @@ public class ScheduleDataHandler {
     return (index % 20) < 10;
   }
 
-  private IntegerSolution findFeasibleClassroom(int attendingStudents,
+  public IntegerSolution findFeasibleClassroom(int attendingStudents,
                                                 int cellIndex,
                                                 IntegerSolution solution) {
     for (int cellCandidate = 0; cellCandidate < cellsInMatrix; cellCandidate++) {
@@ -185,10 +185,25 @@ public class ScheduleDataHandler {
     return solution;
   }
 
-  private IntegerSolution findFeasibleClassroom(int cellIndex,
+  public IntegerSolution findFeasibleClassroom(int cellIndex,
                                                 IntegerSolution solution) {
-    
+    int classroom = getClassroom(cellIndex);
+    int capacity = classroomCapacity.get(classroom);
+    int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
     return solution;
+  }
+
+  public int getAttendingStudents(Integer classWithType) {
+    int type = getClassType(classWithType);
+    int course = getClassCourse(classWithType);
+    int amountOfStudents = 0;
+    for (Integer orientation : getCourseMapOrientation().get(course)) {
+      amountOfStudents += getOrientationStudents().get(orientation);
+    }
+    int year = getCourseMapYear().get(course);
+    amountOfStudents = (int) (getAttendanceFactor().get(year) *
+        amountOfStudents * getTypeProportionInCourse(type, course));
+    return amountOfStudents;
   }
 
   // default instance
