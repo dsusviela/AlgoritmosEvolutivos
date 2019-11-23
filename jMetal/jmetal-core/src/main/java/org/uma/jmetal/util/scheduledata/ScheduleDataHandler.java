@@ -301,7 +301,7 @@ public class ScheduleDataHandler {
   }
 
   // function that swaps two classes if said swap is feasible
-  private IntegerSolution swapFeasibleClassroom(int victim,
+  public IntegerSolution swapFeasibleClassroom(int victim,
                                                 int cellIndex,
                                                 IntegerSolution originalSolution) {
     IntegerSolution solution = (IntegerSolution) originalSolution.copy();

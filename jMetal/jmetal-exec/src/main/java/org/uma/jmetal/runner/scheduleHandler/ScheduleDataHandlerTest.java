@@ -152,5 +152,29 @@ public class ScheduleDataHandlerTest {
       System.out.println("ERROR! LA VICTIMA ESPERADA ES 480 Y OBTUVE " + handler.chooseVictim(handler.getVictimSetTurnDay(1, attendingStudents, solution), solution));
     }
 
+    System.out.println("testeando funcion de swapeo si es uno factible");
+    solution.setVariableValue(490, 480);
+    IntegerSolution swappedSol = handler.swapFeasibleClassroom(1, 480, solution);
+    if (swappedSol == null) {
+      System.out.println("OK");
+    } else {
+      System.out.println("ERROR! SE ESPERABA QUE NO HUBIERA SWAP");
+    }
+    swappedSol = handler.swapFeasibleClassroom(840, 480, solution);
+    if (swappedSol != null) {
+      if (swappedSol.getVariableValue(840) == 11 &&
+          swappedSol.getVariableValue(850) == 840 &&
+          swappedSol.getVariableValue(480) == 0 &&
+          swappedSol.getVariableValue(490) == 0) {
+        System.out.println("OK");
+      } else {
+        System.out.println("ERROR! SE ESPERABA QUE EN EL LUGAR 840 ESTE EL 11 SE TIENE EL " + swappedSol.getVariableValue(840));
+        System.out.println("ERROR! SE ESPERABA QUE EN EL LUGAR 850 ESTE EL 840 SE TIENE EL " + swappedSol.getVariableValue(850));
+        System.out.println("ERROR! SE ESPERABA QUE EN EL LUGAR 480 ESTE EL 0 SE TIENE EL " + swappedSol.getVariableValue(480));
+        System.out.println("ERROR! SE ESPERABA QUE EN EL LUGAR 490 ESTE EL 0 SE TIENE EL " + swappedSol.getVariableValue(490));
+      }
+    } else {
+        System.out.println("ERROR! NO SE OBTUVO SWAP FACTIBLE");
+    }
   }
 }
