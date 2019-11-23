@@ -153,19 +153,25 @@ public class ScheduleDataHandlerTest {
     }
 
     System.out.println("testeando funcion de swapeo si es uno factible");
-    solution.setVariableValue(490, 480);
     IntegerSolution swappedSol = handler.swapFeasibleClassroom(1, 480, solution);
     if (swappedSol == null) {
       System.out.println("OK");
     } else {
       System.out.println("ERROR! SE ESPERABA QUE NO HUBIERA SWAP");
     }
+    // pair added to 480 cell
+    solution.setVariableValue(180, 42);
+    solution.setVariableValue(190, 480);
+    solution.setVariableValue(490, 180);
+    // new cells added for swap
+    solution.setVariableValue(840, 27);
+    solution.setVariableValue(850, 840);
     swappedSol = handler.swapFeasibleClassroom(840, 480, solution);
     if (swappedSol != null) {
       if (swappedSol.getVariableValue(840) == 11 &&
-          swappedSol.getVariableValue(850) == 840 &&
-          swappedSol.getVariableValue(480) == 0 &&
-          swappedSol.getVariableValue(490) == 0) {
+          swappedSol.getVariableValue(850) == 180 &&
+          swappedSol.getVariableValue(480) == 27 &&
+          swappedSol.getVariableValue(490) == 480) {
         System.out.println("OK");
       } else {
         System.out.println("ERROR! SE ESPERABA QUE EN EL LUGAR 840 ESTE EL 11 SE TIENE EL " + swappedSol.getVariableValue(840));
