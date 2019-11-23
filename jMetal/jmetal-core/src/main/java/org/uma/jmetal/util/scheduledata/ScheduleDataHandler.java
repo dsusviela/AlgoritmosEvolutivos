@@ -33,7 +33,7 @@ public class ScheduleDataHandler {
   // please note that course 44 in deault data has a special year
   private HashMap<Integer, Integer> courseMapYear;
 
-  ScheduleDataHandler() {
+  public ScheduleDataHandler() {
     generateInstance();
   }
 
@@ -177,7 +177,7 @@ public class ScheduleDataHandler {
   }
   // given 2 days returns the amount of days between them
   public int distanceBetweenDays(int day, int dayPair) {
-    return Math.abs((day - dayPair));
+    return Math.abs((day - dayPair)) - 1;
   }
 
   // given a class with its type, returns the amount of students that attend it
