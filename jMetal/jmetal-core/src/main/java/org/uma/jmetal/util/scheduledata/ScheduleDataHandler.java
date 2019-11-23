@@ -180,6 +180,21 @@ public class ScheduleDataHandler {
     return Math.abs((day - dayPair));
   }
 
+  // given a class with its type, returns the amount of students that attend it
+  public int getAttendingStudents(Integer classWithType) {
+    int type = getClassType(classWithType);
+    int course = getClassCourse(classWithType);
+    int amountOfStudents = 0;
+    for (Integer orientation : getCourseMapOrientation().get(course)) {
+      amountOfStudents += getOrientationStudents().get(orientation);
+    }
+    int year = getCourseMapYear().get(course);
+    amountOfStudents = (int) (getAttendanceFactor().get(year) *
+        amountOfStudents * getTypeProportionInCourse(type, course));
+    return amountOfStudents;
+  }
+
+  // CONFLICT RESOLUTION FUNCTIONS
   public IntegerSolution findFeasibleClassroom(int cellIndex,
                                                IntegerSolution solution) {
     int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
@@ -230,27 +245,13 @@ public class ScheduleDataHandler {
       // we cant swap, so we return null
       return null;
     } else {
+      // we chose a victim and return it
       int victim = chooseVictim(attendingStudents, victimSet, solution);
-      return swapFeasibleClassroom(attendingStudents, cellIndex, solution);
+      return swapFeasibleClassroom(victim, cellIndex, solution);
     }
   }
-
-  private int chooseVictim(int attendingStudents, HashSet<Integer> victimSet, IntegerSolution solution) {
-    // note that the possibleVictim set cant be empty, if it is then theres no classroom that
-    // can accommodate attending students which would result in a very bad thing
-    int victim = -1;
-    int victimAttendance = attendingStudents;
-    for (Integer possibleVictim : victimSet) {
-      int victimClassWithType = solution.getVariableValue(possibleVictim);
-      int attendance = getAttendingStudents(victimClassWithType);
-      if (attendance < victimAttendance) {
-        victim = possibleVictim;
-        victimAttendance = attendance;
-      }
-    }
-    return victim;
-  }
-
+  
+  // AUXILIARY FUNCTIONS FOR FIND FEASIBLE CLASSROOM
   public HashSet<Integer> getVictimSetTurnDay(int cellIndex, int attendingStudents, IntegerSolution originalSolution) {
     IntegerSolution solution = (IntegerSolution) originalSolution.copy();
     int turn = getTurn(cellIndex);
@@ -277,8 +278,24 @@ public class ScheduleDataHandler {
     }
     return victimSet;
   }
-  
 
+  private int chooseVictim(int attendingStudents, HashSet<Integer> victimSet, IntegerSolution solution) {
+    // note that the possibleVictim set cant be empty, if it is then theres no classroom that
+    // can accommodate attending students which would result in a very bad thing
+    int victim = -1;
+    int victimAttendance = attendingStudents;
+    for (Integer possibleVictim : victimSet) {
+      int victimClassWithType = solution.getVariableValue(possibleVictim);
+      int attendance = getAttendingStudents(victimClassWithType);
+      if (attendance < victimAttendance) {
+        victim = possibleVictim;
+        victimAttendance = attendance;
+      }
+    }
+    return victim;
+  }
+
+  // function that swaps two classes if said swap is feasible
   private IntegerSolution swapFeasibleClassroom(int victim,
                                                 int cellIndex,
                                                 IntegerSolution originalSolution) {
@@ -314,19 +331,6 @@ public class ScheduleDataHandler {
     }
   }
 
-  public int getAttendingStudents(Integer classWithType) {
-    int type = getClassType(classWithType);
-    int course = getClassCourse(classWithType);
-    int amountOfStudents = 0;
-    for (Integer orientation : getCourseMapOrientation().get(course)) {
-      amountOfStudents += getOrientationStudents().get(orientation);
-    }
-    int year = getCourseMapYear().get(course);
-    amountOfStudents = (int) (getAttendanceFactor().get(year) *
-        amountOfStudents * getTypeProportionInCourse(type, course));
-    return amountOfStudents;
-  }
-
   public IntegerSolution findFeasibleDay(int cellIndex, IntegerSolution originalSolution) {
     IntegerSolution solution = (IntegerSolution) originalSolution.copy();
     // note that the classroom already fits the amount of students
@@ -352,6 +356,7 @@ public class ScheduleDataHandler {
       }
     }
     // we didnt find a slot, we must perform a swap
+    HashSet<Integer> victimSet = getVictimSetTurnDay();
     return solution;
   }
 
