@@ -1,5 +1,7 @@
 package org.uma.jmetal.runner.scheduleHandler;
 
+import java.util.HashSet;
+
 import org.uma.jmetal.problem.singleobjective.Schedule;
 import org.uma.jmetal.solution.IntegerSolution;
 import org.uma.jmetal.solution.impl.DefaultIntegerSolution;
@@ -121,6 +123,27 @@ public class ScheduleDataHandlerTest {
       System.out.println("OK");
     } else {
       System.out.println("ERROR! ESPERABA 2 PARA LA CLASE 01 OBTUVE " + handler.getAttendingStudents(01));
+    }
+
+    System.out.println("---------");
+    System.out.println("FIN DE TEST DE FUNCIONES COMUNES");
+    System.out.println("---------");
+    System.out.println("");
+
+    System.out.println("---------");
+    System.out.println("COMIENZO DE TEST DE FUNCIONES DE FACTIBILIDAD");
+    System.out.println("---------");
+
+    System.out.println("testeando funcion de victimas para un turno y dia fijo");
+    HashSet<Integer> expectedVictims = new HashSet<Integer>();
+    for(int i = 1; i < handler.getClassroomCapacity().keySet().size(); i++) {
+        expectedVictims.add(i);
+    }
+    int attendingStudents = handler.getAttendingStudents(solution.getVariableValue(1));
+    if (handler.getVictimSetTurnDay(1, attendingStudents, solution).equals(expectedVictims)) {
+      System.out.println("OK");
+    } else {
+      System.out.println("ERROR! ESPERABA TODAS LOS SALONES MENOS 0 OBTUVE " + handler.getVictimSetTurnDay(1, attendingStudents, solution));
     }
   }
 }
