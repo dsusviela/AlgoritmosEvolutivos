@@ -156,7 +156,7 @@ public class ScheduleDataHandler {
   }
   // given a cellIndex and a solution returns if the value in cellIndex has a pair
   public boolean hasPair(int cellIndex, IntegerSolution solution) {
-    boolean thereIsAPair = (solution.getVariableValue(cellIndex) + 10) != 0;
+    boolean thereIsAPair = (solution.getVariableValue(cellIndex) + 10) != 0 && cellIndex != solution.getVariableValue(cellIndex+10);
     int locationPairIsPointing = solution.getVariableValue(solution.getVariableValue(cellIndex+10)+10);
     boolean pairIsPointingAtMe = locationPairIsPointing == cellIndex;
     return (thereIsAPair && pairIsPointingAtMe);
@@ -320,15 +320,19 @@ public class ScheduleDataHandler {
       // perform the swap
       solution.setVariableValue(victim, originalValue);
       solution.setVariableValue(cellIndex, victimCopy);
-      if (hasPair(victim, originalSolution)) {
-        solution.setVariableValue(cellIndex + 10, vicitmPairCopy);
-        // pair now should reference new value
-        solution.setVariableValue(vicitmPairCopy + 10, cellIndex);
-      }
       if (hasPair(cellIndex, originalSolution)) {
         solution.setVariableValue(victim + 10, originalPairValue);
         // pair now should reference new value
         solution.setVariableValue(originalPairValue + 10, victim);
+      } else {
+        solution.setVariableValue(victim + 10, victim);
+      }
+      if (hasPair(victim, originalSolution)) {
+        solution.setVariableValue(cellIndex + 10, vicitmPairCopy);
+        // pair now should reference new value
+        solution.setVariableValue(vicitmPairCopy + 10, cellIndex);
+      } else {
+        solution.setVariableValue(cellIndex + 10, cellIndex);
       }
       return solution;
     } else {
@@ -458,11 +462,55 @@ public class ScheduleDataHandler {
     classroomCapacity.put("SW", 16);
 
     classroomNameMap = new HashMap<Integer, String>();
-    int key = 0;
-    for (String stringNameId : classroomCapacity.keySet()) {
-      classroomNameMap.put(key, stringNameId);
-      key++;
-    }
+    classroomNameMap = new HashMap<Integer, String>();
+    classroomNameMap.put(0, "31");
+    classroomNameMap.put(1, "101");
+    classroomNameMap.put(2, "102");
+    classroomNameMap.put(3, "115");
+    classroomNameMap.put(4, "116");
+    classroomNameMap.put(5, "301");
+    classroomNameMap.put(6, "303");
+    classroomNameMap.put(7, "305");
+    classroomNameMap.put(8, "307");
+    classroomNameMap.put(9, "309");
+    classroomNameMap.put(10, "310");
+    classroomNameMap.put(11, "311");
+    classroomNameMap.put(12, "501");
+    classroomNameMap.put(13, "601");
+    classroomNameMap.put(14, "ACTOS");
+    classroomNameMap.put(15, "502");
+    classroomNameMap.put(16, "703");
+    classroomNameMap.put(17, "705");
+    classroomNameMap.put(18, "720");
+    classroomNameMap.put(19, "722");
+    classroomNameMap.put(20, "725");
+    classroomNameMap.put(21, "727");
+    classroomNameMap.put(22, "A01");
+    classroomNameMap.put(23, "A11");
+    classroomNameMap.put(24, "A12");
+    classroomNameMap.put(25, "A21");
+    classroomNameMap.put(26, "A22");
+    classroomNameMap.put(27, "B01");
+    classroomNameMap.put(28, "B11");
+    classroomNameMap.put(29, "B12");
+    classroomNameMap.put(30, "B21");
+    classroomNameMap.put(31, "B22");
+    classroomNameMap.put(32, "C01");
+    classroomNameMap.put(33, "C11");
+    classroomNameMap.put(34, "C12");
+    classroomNameMap.put(35, "C21");
+    classroomNameMap.put(36, "C22");
+    classroomNameMap.put(37, "UDELAR A");
+    classroomNameMap.put(38, "UDELAR B");
+    classroomNameMap.put(39, "UDELAR C");
+    classroomNameMap.put(40, "UDELAR D");
+    classroomNameMap.put(41, "BIBLIOTECA");
+    classroomNameMap.put(42, "312");
+    classroomNameMap.put(43, "314");
+    classroomNameMap.put(44, "315");
+    classroomNameMap.put(45, "401");
+    classroomNameMap.put(46, "402");
+    classroomNameMap.put(47, "SW");
 
     courseMapOrientation = new HashMap<Integer, HashSet<Integer>>();
     HashSet<Integer> orientationSet = new HashSet<>();

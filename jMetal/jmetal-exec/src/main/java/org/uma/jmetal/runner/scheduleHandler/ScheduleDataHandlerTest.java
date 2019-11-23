@@ -153,12 +153,6 @@ public class ScheduleDataHandlerTest {
     }
 
     System.out.println("testeando funcion de swapeo si es uno factible");
-    IntegerSolution swappedSol = handler.swapFeasibleClassroom(1, 480, solution);
-    if (swappedSol == null) {
-      System.out.println("OK");
-    } else {
-      System.out.println("ERROR! SE ESPERABA QUE NO HUBIERA SWAP");
-    }
     // pair added to 480 cell
     solution.setVariableValue(180, 42);
     solution.setVariableValue(190, 480);
@@ -166,18 +160,18 @@ public class ScheduleDataHandlerTest {
     // new cells added for swap
     solution.setVariableValue(840, 21);
     solution.setVariableValue(850, 840);
-    swappedSol = handler.swapFeasibleClassroom(840, 480, solution);
+    IntegerSolution swappedSol = handler.swapFeasibleClassroom(840, 480, solution);
     if (swappedSol != null) {
       if (swappedSol.getVariableValue(840) == 11 &&
           swappedSol.getVariableValue(850) == 180 &&
-          swappedSol.getVariableValue(480) == 27 &&
+          swappedSol.getVariableValue(480) == 21 &&
           swappedSol.getVariableValue(490) == 480) {
         System.out.println("OK");
       } else {
         System.out.println("ERROR! SE ESPERABA QUE EN EL LUGAR 840 ESTE EL 11 SE TIENE EL " + swappedSol.getVariableValue(840));
-        System.out.println("ERROR! SE ESPERABA QUE EN EL LUGAR 850 ESTE EL 840 SE TIENE EL " + swappedSol.getVariableValue(850));
-        System.out.println("ERROR! SE ESPERABA QUE EN EL LUGAR 480 ESTE EL 0 SE TIENE EL " + swappedSol.getVariableValue(480));
-        System.out.println("ERROR! SE ESPERABA QUE EN EL LUGAR 490 ESTE EL 0 SE TIENE EL " + swappedSol.getVariableValue(490));
+        System.out.println("ERROR! SE ESPERABA QUE EN EL LUGAR 850 ESTE EL 180 SE TIENE EL " + swappedSol.getVariableValue(850));
+        System.out.println("ERROR! SE ESPERABA QUE EN EL LUGAR 480 ESTE EL 21 SE TIENE EL " + swappedSol.getVariableValue(480));
+        System.out.println("ERROR! SE ESPERABA QUE EN EL LUGAR 490 ESTE EL 480 SE TIENE EL " + swappedSol.getVariableValue(490));
       }
     } else {
         System.out.println("ERROR! NO SE OBTUVO SWAP FACTIBLE");
