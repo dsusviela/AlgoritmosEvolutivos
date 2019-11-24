@@ -382,7 +382,7 @@ public class ScheduleDataHandler {
     HashSet<Integer> result = new HashSet<Integer>();
     int day = getDay(cellIndex);
     for (int candidateDay = 0; candidateDay < 5; candidateDay++) {
-      if (1 < distanceBetweenDays(candidateDay, day)) {
+      if (0 < distanceBetweenDays(candidateDay, day)) {
         result.add(candidateDay);
       }
     }
