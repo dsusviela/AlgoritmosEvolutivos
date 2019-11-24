@@ -255,7 +255,7 @@ public class ScheduleDataHandler {
               HashSet<Integer> possibleDays = getCandidateDaysForPair(cell, solution);
               for (Integer dayPair : possibleDays) {
                 int cellPair = 60*classroom + 20*turn + 2*dayPair;
-                for (int j = 0; i < 2; i++) {
+                for (int j = 0; j < 2; j++) {
                   cellPair += j;
                   if (solution.getVariableValue(cellPair) == 0) {
                     ArrayList<Integer> classroomData = new ArrayList<Integer>();

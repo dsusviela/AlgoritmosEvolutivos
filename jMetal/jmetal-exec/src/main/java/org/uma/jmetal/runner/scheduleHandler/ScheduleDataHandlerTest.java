@@ -270,8 +270,8 @@ public class ScheduleDataHandlerTest {
         int cell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2);
         if (solution.getVariableValue(cell) == 0) {
           int pairCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(3);
-          if (solution.getVariableValue(pairCell) == 0) {
-            System.out.println("ERROR! LA OPCION " + option + " INTENTA LA CELDA " + cell + " PARA EL PAR");
+          if (solution.getVariableValue(pairCell) != 0) {
+            System.out.println("ERROR! LA OPCION " + option + " INTENTA LA CELDA " + pairCell + " PARA EL PAR LA CUAL ESTA OCUPADA");
           }
         } else {
           System.out.println("ERROR! LA OPCION " + option + " INTENTA LA CELDA " + cell + " LA CUAL ESTA OCUPADA");
