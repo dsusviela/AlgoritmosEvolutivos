@@ -235,10 +235,19 @@ public class ScheduleDataHandlerTest {
 
     System.out.println("testeando funcion getFeasibleClassroomsNoPair");
     HashMap<Integer, ArrayList<Integer>> dataClass10 = handler.getFeasibleClassroomsNoPair(10, solution);
-    if (dataClass10.size() == 13) {
-
-    } else {
-      System.out.println("ERROR! SE ESPERABAN 13 OPCIONES SE OBTUVIERON " + dataClass10.size());
+    attendingStudents = handler.getAttendingStudents(10);
+    for (ArrayList<Integer> option : dataClass10.values()) {
+      if (handler.getClassroomCapacity(option.get(0)) < attendingStudents) {
+        int cell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2);
+        if (solution.getVariableValue(cell) == 0) {
+          System.out.println("OK");
+        } else {
+          System.out.println("ERROR! LA OPCION " + option + " INTENTA LA CELDA " + cell + " LA CUAL ESTA OCUPADA");
+        }
+      } else  {
+        System.out.println("ERROR! LA OPCION " + option + " CONSIDERA UN SALON CON CAPACIDAD INSUFICIENTE (" + 
+            handler.getClassroomCapacity(option.get(0)) + ") PARA LOS " + attendingStudents);
+      }
     }
     
   }
