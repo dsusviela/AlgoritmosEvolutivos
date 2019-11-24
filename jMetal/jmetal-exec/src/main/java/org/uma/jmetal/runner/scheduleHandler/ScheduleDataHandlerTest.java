@@ -16,7 +16,7 @@ public class ScheduleDataHandlerTest {
     ScheduleDataHandler handler = new ScheduleDataHandler();
     Schedule problem = new Schedule(handler);
     IntegerSolution solution = new DefaultIntegerSolution(problem);
-    for (int i = 0; i < 1110; i++) {
+    for (int i = 0; i < 2880; i++) {
       solution.setVariableValue(i, 0);
     }
     

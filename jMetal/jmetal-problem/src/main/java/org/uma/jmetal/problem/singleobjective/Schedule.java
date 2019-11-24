@@ -8,11 +8,13 @@ import org.uma.jmetal.util.scheduledata.ScheduleDataHandler;
 import java.util.*;
 
 public class Schedule extends AbstractIntegerProblem {
-  private int cellsInMatrix = 1110;
+  private int cellsInMatrix = 2880;
   private ScheduleDataHandler handler;
 
   public Schedule(ScheduleDataHandler dataHandler) {
     handler = dataHandler;
+    handler.generateInstance();
+    cellsInMatrix = handler.getClassroomCapacity().keySet().size() * 60;
     setNumberOfVariables(cellsInMatrix);
     setNumberOfObjectives(1);
     setName("Schedule");
@@ -26,13 +28,12 @@ public class Schedule extends AbstractIntegerProblem {
     setLowerLimit(lowerLimit);
     setUpperLimit(upperLimit);
 
-    handler.generateInstance();
   }
 
   @Override
   public void evaluate(IntegerSolution solution) {
     LinkedList<Integer> solutionVector = new LinkedList<Integer>();
-    solution = createFeasibleSolution(solution);
+    //solution = createFeasibleSolution(solution);
     for (int i = 0; i < cellsInMatrix; i++) {
       solutionVector.add(solution.getVariableValue(i));
     }

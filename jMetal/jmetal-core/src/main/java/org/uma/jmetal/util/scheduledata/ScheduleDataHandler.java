@@ -8,7 +8,7 @@ import java.util.HashSet;
 
 public class ScheduleDataHandler {
   // total cells in matrix
-  private int cellsInMatrix = 1110;
+  private int cellsInMatrix = 2880;
   // total courses in matrix
   private int amountCourses;
   // how 'wrong' is to have uneven distribution of courses over the turns in a given day
