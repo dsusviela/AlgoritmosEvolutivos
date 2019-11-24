@@ -377,6 +377,18 @@ public class ScheduleDataHandler {
     }
   }
 
+  // returns the possible day locations for a potential pair of cellindex
+  public HashSet<Integer> getCandidateDaysForPair(int cellIndex, IntegerSolution solution) {
+    HashSet<Integer> result = new HashSet<Integer>();
+    int day = getDay(cellIndex);
+    for (int candidateDay = 0; candidateDay < 5; candidateDay++) {
+      if (1 < distanceBetweenDays(candidateDay, day)) {
+        result.add(candidateDay);
+      }
+    }
+    return result;
+  }
+
   private HashSet<Integer> getVictimSetTurnClassroom(int cellIndex, 
                                                      int attendingStudents,
                                                      IntegerSolution solution) {
@@ -394,17 +406,6 @@ public class ScheduleDataHandler {
       }
     }
     return victimSet;
-  }
-
-  private HashSet<Integer> getCandidateDaysForPair(int cellIndex, IntegerSolution solution) {
-    HashSet<Integer> result = new HashSet<Integer>();
-    int day = getDay(cellIndex);
-    for (int candidateDay = 0; candidateDay < 5; candidateDay++) {
-      if (1 < distanceBetweenDays(candidateDay, day)) {
-        result.add(candidateDay);
-      }
-    }
-    return result;
   }
 
   // default instance

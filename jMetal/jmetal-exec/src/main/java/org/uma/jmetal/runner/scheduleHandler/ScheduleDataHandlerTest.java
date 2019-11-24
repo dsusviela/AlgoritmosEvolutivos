@@ -176,5 +176,38 @@ public class ScheduleDataHandlerTest {
     } else {
         System.out.println("ERROR! NO SE OBTUVO SWAP FACTIBLE");
     }
+
+    System.out.println("testeando funcion getCandidateDaysForPair");
+    HashSet<Integer> expectedDays = new HashSet<Integer>();
+    expectedDays.add(2);
+    expectedDays.add(3);
+    expectedDays.add(4);
+    if (handler.getCandidateDaysForPair(01, solution).containsAll(expectedDays)) {
+      System.out.println("OK");
+    } else {
+      System.out.println("ERROR! LOS DIAS ESPERADOS SON 2, 3, 4 SE OBTUVIERON " + handler.getCandidateDaysForPair(01, solution));
+    }
+    expectedDays = new HashSet<Integer>();
+    solution.setVariableValue(482, 11);
+    expectedDays.add(3);
+    expectedDays.add(4);
+    if (handler.getCandidateDaysForPair(482, solution).containsAll(expectedDays)) {
+      System.out.println("OK");
+    } else {
+      System.out.println("ERROR! LOS DIAS ESPERADOS SON 3, 4 SE OBTUVIERON " + handler.getCandidateDaysForPair(482, solution));
+    }
+    solution.setVariableValue(482, 0);
+
+    expectedDays = new HashSet<Integer>();
+    solution.setVariableValue(488, 11);
+    expectedDays.add(0);
+    expectedDays.add(1);
+    expectedDays.add(2);
+    if (handler.getCandidateDaysForPair(488, solution).containsAll(expectedDays)) {
+      System.out.println("OK");
+    } else {
+      System.out.println("ERROR! LOS DIAS ESPERADOS SON 0, 1, 2 SE OBTUVIERON " + handler.getCandidateDaysForPair(488, solution));
+    }
+    solution.setVariableValue(488, 0);
   }
 }
