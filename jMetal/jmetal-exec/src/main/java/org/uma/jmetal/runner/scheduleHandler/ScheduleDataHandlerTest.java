@@ -255,6 +255,32 @@ public class ScheduleDataHandlerTest {
             handler.getClassroomCapacity(option.get(0)) + ") PARA LOS " + attendingStudents);
       }
     }
+
+    System.out.println("testeando funcion getFeasibleClassroomsWithPair");
+    dataClass10 = handler.getFeasibleClassroomsWithPair(10, solution);
+    attendingStudents = handler.getAttendingStudents(10);
+    if (dataClass10.size() == 120) {
+      System.out.println("CANTIDAD DE OPCIONES: OK");
+    } else {
+      System.out.println("ERROR! SE ESPERABAN 120 OPCIONES Y SE OBTUVIERON " + dataClass10.size());
+    }
+    System.out.println("testeando correctitud de las " + dataClass10.size() + " opciones");
+    for (ArrayList<Integer> option : dataClass10.values()) {
+      if (attendingStudents <= handler.getClassroomCapacity(option.get(0))) {
+        int cell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2);
+        if (solution.getVariableValue(cell) == 0) {
+          int pairCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(3);
+          if (solution.getVariableValue(pairCell) == 0) {
+            System.out.println("ERROR! LA OPCION " + option + " INTENTA LA CELDA " + cell + " PARA EL PAR");
+          }
+        } else {
+          System.out.println("ERROR! LA OPCION " + option + " INTENTA LA CELDA " + cell + " LA CUAL ESTA OCUPADA");
+        }
+      } else  {
+        System.out.println("ERROR! LA OPCION " + option + " CONSIDERA UN SALON CON CAPACIDAD INSUFICIENTE (" + 
+            handler.getClassroomCapacity(option.get(0)) + ") PARA LOS " + attendingStudents);
+      }
+    }
     
   }
 }
