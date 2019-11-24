@@ -236,7 +236,7 @@ public class ScheduleDataHandlerTest {
     System.out.println("testeando funcion getFeasibleClassroomsNoPair");
     HashMap<Integer, ArrayList<Integer>> dataClass10 = handler.getFeasibleClassroomsNoPair(10, solution);
     attendingStudents = handler.getAttendingStudents(10);
-    if (dataClass10.size() == 60) {
+    if (dataClass10.size() == 30) {
       System.out.println("CANTIDAD DE OPCIONES: OK");
     } else {
       System.out.println("ERROR! SE ESPERABAN 60 OPCIONES Y SE OBTUVIERON " + dataClass10.size());
@@ -259,7 +259,7 @@ public class ScheduleDataHandlerTest {
     System.out.println("testeando funcion getFeasibleClassroomsWithPair");
     dataClass10 = handler.getFeasibleClassroomsWithPair(10, solution);
     attendingStudents = handler.getAttendingStudents(10);
-    if (dataClass10.size() == 120) {
+    if (dataClass10.size() == 72) {
       System.out.println("CANTIDAD DE OPCIONES: OK");
     } else {
       System.out.println("ERROR! SE ESPERABAN 120 OPCIONES Y SE OBTUVIERON " + dataClass10.size());
