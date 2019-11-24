@@ -13,6 +13,8 @@ public class ScheduleDataHandler {
   private int amountCourses;
   // how 'wrong' is to have uneven distribution of courses over the turns in a given day
   private int disparityFactor;
+  // how 'wrong' is to have consecutive days of the same pair
+  private int consecutivePenaltyFactor;
   // given a course returns its orientations
   private HashMap<Integer, HashSet<Integer>> courseMapOrientation;
   // given a course returns its classes in order
@@ -63,6 +65,14 @@ public class ScheduleDataHandler {
 
   public void setDisparityFactor(int disparityFactor) {
     this.disparityFactor = disparityFactor;
+  }
+
+  public int getConsecutivePenaltyFactor() {
+    return consecutivePenaltyFactor;
+  }
+
+  public void setConsecutivePenaltyFactor(int consecutivePenaltyFactor) {
+    this.consecutivePenaltyFactor = consecutivePenaltyFactor;
   }
 
   public HashMap<Integer, HashSet<Integer>> getCourseMapOrientation() {
@@ -427,6 +437,9 @@ public class ScheduleDataHandler {
   // default instance
   // creates an instance problem
   public void generateInstance() {
+    disparityFactor = 80;
+    consecutivePenaltyFactor = 500;
+
     amountCourses = 63;
     classroomCapacity = new HashMap<String, Integer>();
     classroomCapacity.put("31", 50);
