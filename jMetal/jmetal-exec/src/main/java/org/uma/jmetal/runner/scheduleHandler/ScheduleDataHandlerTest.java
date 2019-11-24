@@ -237,10 +237,10 @@ public class ScheduleDataHandlerTest {
     HashMap<Integer, ArrayList<Integer>> dataClass10 = handler.getFeasibleClassroomsNoPair(10, solution);
     attendingStudents = handler.getAttendingStudents(10);
     for (ArrayList<Integer> option : dataClass10.values()) {
-      if (handler.getClassroomCapacity(option.get(0)) < attendingStudents) {
+      if (attendingStudents <= handler.getClassroomCapacity(option.get(0))) {
         int cell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2);
         if (solution.getVariableValue(cell) == 0) {
-          System.out.println("OK");
+          System.out.println("OPCION: OK");
         } else {
           System.out.println("ERROR! LA OPCION " + option + " INTENTA LA CELDA " + cell + " LA CUAL ESTA OCUPADA");
         }
