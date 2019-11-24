@@ -351,18 +351,25 @@ public class ScheduleDataHandler {
     // we iterate through all the classroom slots for the same turn as the original
     for (Integer day : candidateDays) {
       int candidateCell = 60*classroom + 20*turn + 2*day;
-      // if its not the same as the original and its available
-      if (candidateCell != classroom &&
-          solution.getVariableValue(candidateCell) == 0) {
-        // we can perform the swap
-        int originalValue = solution.getVariableValue(cellIndex);
-        int originalPair = solution.getVariableValue(cellIndex + 10);
-        solution.setVariableValue(candidateCell, originalValue);
-        solution.setVariableValue(candidateCell + 10, originalPair);
-        // now we must make the pair point at the new cell
-        // note that the pair always exists, else we wouldnt need for the function call
-        solution.setVariableValue(originalPair + 10, candidateCell);
-        return solution;
+      // we must iterate in both classes of the same turn
+      for (int i = 0; i < 2; i++) {
+        candidateCell +=i;
+        // if its not the same as the original and its available
+        if (candidateCell != classroom &&
+            solution.getVariableValue(candidateCell) == 0) {
+          // we can perform the insertion
+          int originalValue = solution.getVariableValue(cellIndex);
+          int originalPair = solution.getVariableValue(cellIndex + 10);
+          solution.setVariableValue(candidateCell, originalValue);
+          solution.setVariableValue(candidateCell + 10, originalPair);
+          // now we must make the pair point at the new cell
+          // note that the pair always exists, else we wouldnt need for the function call
+          solution.setVariableValue(originalPair + 10, candidateCell);
+          // we must now clean the original spot
+          solution.setVariableValue(cellIndex, 0);
+          solution.setVariableValue(cellIndex + 10, 0);
+          return solution;
+        }
       }
     }
     // we didnt find a slot, we must perform a swap

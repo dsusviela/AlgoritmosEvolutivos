@@ -216,8 +216,8 @@ public class ScheduleDataHandlerTest {
     solution.setVariableValue(485, 21);
     solution.setVariableValue(388, 01);
     solution.setVariableValue(500, 01);
-    HashSet<Integer> expectedClasses = new HashSet<Integer>();
     solution.setVariableValue(488, 11);
+    HashSet<Integer> expectedClasses = new HashSet<Integer>();
     expectedClasses.add(488);
     expectedClasses.add(485);
     if (handler.getVictimSetTurnClassroom(480, solution).containsAll(expectedClasses)) {
@@ -225,5 +225,12 @@ public class ScheduleDataHandlerTest {
     } else {
       System.out.println("ERROR! LOS INDICES ESPERADOS SON 488, 485 SE OBTUVIERON " + handler.getVictimSetTurnClassroom(480, solution));
     }
+    solution.setVariableValue(488, 0);
+    solution.setVariableValue(485, 0);
+    solution.setVariableValue(388, 0);
+    solution.setVariableValue(500, 0);
+    solution.setVariableValue(488, 0);
+
+    
   }
 }
