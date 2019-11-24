@@ -209,6 +209,7 @@ public class ScheduleDataHandler {
   // given a class with type returns all the possible cells of solution where the class would fit
   public HashMap<Integer, ArrayList<Integer>> getFeasibleClassroomsNoPair(int classWithType, IntegerSolution solution) {
     HashMap<Integer, ArrayList<Integer>> classroomSet = new HashMap<Integer, ArrayList<Integer>>();
+    HashSet<ArrayList<Integer>> evaluatedOptions = new HashSet<ArrayList<Integer>>();
     // we must first get the capacity needed
     int capacityNeeded = getAttendingStudents(classWithType);
     // we should iterate through all classrooms and check if said classroom is empty
@@ -221,11 +222,12 @@ public class ScheduleDataHandler {
             int cell = 60*classroom + 20*turn + 2*day;
             for (int i = 0; i < 2; i++) {
               cell += i;
-              if (solution.getVariableValue(cell) == 0) {
-                ArrayList<Integer> classroomData = new ArrayList<Integer>();
-                classroomData.add(classroom);
-                classroomData.add(turn);
-                classroomData.add(day);
+              ArrayList<Integer> classroomData = new ArrayList<Integer>();
+              classroomData.add(classroom);
+              classroomData.add(turn);
+              classroomData.add(day);
+              if (!evaluatedOptions.contains(classroomData) && solution.getVariableValue(cell) == 0) {
+                evaluatedOptions.add(classroomData);
                 classroomSet.put(classroomSet.size(), classroomData);
               }
             }
@@ -239,6 +241,7 @@ public class ScheduleDataHandler {
   // given a class with type returns all the possible cells of solution where the class would fit, and its pair
   public HashMap<Integer, ArrayList<Integer>> getFeasibleClassroomsWithPair(int classWithType, IntegerSolution solution) {
     HashMap<Integer, ArrayList<Integer>> classroomSet = new HashMap<Integer, ArrayList<Integer>>();
+    HashSet<ArrayList<Integer>> evaluatedOptions = new HashSet<ArrayList<Integer>>();
     // we must first get the capacity needed
     int capacityNeeded = getAttendingStudents(classWithType);
     // we should iterate through all classrooms and check if said classroom is empty
@@ -257,12 +260,13 @@ public class ScheduleDataHandler {
                 int cellPair = 60*classroom + 20*turn + 2*dayPair;
                 for (int j = 0; j < 2; j++) {
                   cellPair += j;
-                  if (solution.getVariableValue(cellPair) == 0) {
-                    ArrayList<Integer> classroomData = new ArrayList<Integer>();
-                    classroomData.add(classroom);
-                    classroomData.add(turn);
-                    classroomData.add(day);
-                    classroomData.add(dayPair);
+                  ArrayList<Integer> classroomData = new ArrayList<Integer>();
+                  classroomData.add(classroom);
+                  classroomData.add(turn);
+                  classroomData.add(day);
+                  classroomData.add(dayPair);
+                  if (!evaluatedOptions.contains(classroomData) && solution.getVariableValue(cellPair) == 0) {
+                    evaluatedOptions.add(classroomData);
                     classroomSet.put(classroomSet.size(), classroomData);
                   }
                 }
