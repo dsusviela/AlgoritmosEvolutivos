@@ -400,8 +400,8 @@ public class ScheduleDataHandler {
     for (Integer day : candidateDays) {
       int possibleVictim = 60*classroom + 20*turn + 2*day;
       // we must find classes in the same classroom and turn to swap
-      if (possibleVictim == cellIndex && 
-          solution.getVariableValue(possibleVictim) == 0 &&
+      if (possibleVictim == cellIndex || 
+          solution.getVariableValue(possibleVictim) == 0 ||
           day == getDay(cellIndex)) {
         continue;
       }
