@@ -1,5 +1,7 @@
 package org.uma.jmetal.runner.scheduleHandler;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 
 import org.uma.jmetal.problem.singleobjective.Schedule;
@@ -231,6 +233,13 @@ public class ScheduleDataHandlerTest {
     solution.setVariableValue(500, 0);
     solution.setVariableValue(488, 0);
 
+    System.out.println("testeando funcion getFeasibleClassroomsNoPair");
+    HashMap<Integer, ArrayList<Integer>> dataClass10 = handler.getFeasibleClassroomsNoPair(10, solution);
+    if (dataClass10.size() == 13) {
+
+    } else {
+      System.out.println("ERROR! SE ESPERABAN 13 OPCIONES SE OBTUVIERON " + dataClass10.size());
+    }
     
   }
 }

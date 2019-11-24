@@ -206,6 +206,7 @@ public class ScheduleDataHandler {
     return amountOfStudents;
   }
 
+  // given a class with type returns all the possible cells of solution where the class would fit
   public HashMap<Integer, ArrayList<Integer>> getFeasibleClassroomsNoPair(int classWithType, IntegerSolution solution) {
     HashMap<Integer, ArrayList<Integer>> classroomSet = new HashMap<Integer, ArrayList<Integer>>();
     // we must first get the capacity needed
@@ -235,6 +236,7 @@ public class ScheduleDataHandler {
     return classroomSet;
   }
 
+  // given a class with type returns all the possible cells of solution where the class would fit, and its pair
   public HashMap<Integer, ArrayList<Integer>> getFeasibleClassroomsWithPair(int classWithType, IntegerSolution solution) {
     HashMap<Integer, ArrayList<Integer>> classroomSet = new HashMap<Integer, ArrayList<Integer>>();
     // we must first get the capacity needed
