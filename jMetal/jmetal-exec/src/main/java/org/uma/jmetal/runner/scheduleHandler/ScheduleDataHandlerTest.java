@@ -227,19 +227,15 @@ public class ScheduleDataHandlerTest {
     } else {
       System.out.println("ERROR! LOS INDICES ESPERADOS SON 488, 485 SE OBTUVIERON " + handler.getVictimSetTurnClassroom(480, solution));
     }
-    solution.setVariableValue(488, 0);
-    solution.setVariableValue(485, 0);
-    solution.setVariableValue(388, 0);
-    solution.setVariableValue(500, 0);
-    solution.setVariableValue(488, 0);
+
+    // reseting solution for next tests
+    for (int i = 0; i < 2880; i++) {
+      solution.setVariableValue(i, 0);
+    }
 
     System.out.println("testeando funcion getFeasibleClassroomsNoPair");
     HashMap<Integer, ArrayList<Integer>> dataClass10 = handler.getFeasibleClassroomsNoPair(10, solution);
     attendingStudents = handler.getAttendingStudents(10);
-    // reseting solution
-    for (int i = 0; i < 2880; i++) {
-      solution.setVariableValue(i, 0);
-    }
     if (dataClass10.size() == 60) {
       System.out.println("CANTIDAD DE OPCIONES: OK");
     } else {
