@@ -47,9 +47,31 @@ public class Schedule extends AbstractIntegerProblem {
       }
     }
     fitness += classTurnDistributionDisparity(solution);
+    fitness += distanceBetweenPair(solution);
     solution.setObjective(0, fitness);
   }
   
+  private int distanceBetweenPair(IntegerSolution solution) {
+    int consecutivePairs = 0;
+    HashSet<Integer> evaluated = new HashSet<Integer>();
+    for (int cellIndex = 0; cellIndex < cellsInMatrix; cellIndex++) {
+      if (!evaluated.contains(cellIndex) &&
+          handler.isIndexClass(cellIndex) && 
+          handler.hasPair(cellIndex, solution)) {
+        // we need to get the distance between the classes of the same pair
+        int day = handler.getDay(cellIndex);
+        int pairIndex = solution.getVariableValue(cellIndex + 10);
+        int dayPair = handler.getDay(pairIndex);
+        if (handler.distanceBetweenDays(day, dayPair) < 1) {
+          consecutivePairs++;
+        }
+        evaluated.add(cellIndex);
+        evaluated.add(pairIndex);
+      }
+    }
+    return consecutivePairs * handler.getConsecutivePenaltyFactor();
+  }
+
   private IntegerSolution createFeasibleSolution(IntegerSolution solution) {
     solution = checkClassroomCapacity(solution);
     solution = checkPairsDay(solution);
