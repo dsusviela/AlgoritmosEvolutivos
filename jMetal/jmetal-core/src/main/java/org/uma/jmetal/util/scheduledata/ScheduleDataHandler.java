@@ -397,9 +397,20 @@ public class ScheduleDataHandler {
     HashSet<Integer> candidateDays = getCandidateDaysForPair(cellIndex, solution);
     int classroom = getClassroom(cellIndex);
     int turn = getTurn(cellIndex);
+    int possibleVictim = 0;
     for (Integer day : candidateDays) {
-      int possibleVictim = 60*classroom + 20*turn + 2*day;
+      possibleVictim = 60*classroom + 20*turn + 2*day;
       // we must find classes in the same classroom and turn to swap
+      if (possibleVictim == cellIndex || 
+          solution.getVariableValue(possibleVictim) == 0 ||
+          day == getDay(cellIndex)) {
+        continue;
+      }
+      // since classes are already assigned to this classroom we dont
+      // need to check for capacity
+      victimSet.add(possibleVictim);
+      // second class of the day
+      possibleVictim++;
       if (possibleVictim == cellIndex || 
           solution.getVariableValue(possibleVictim) == 0 ||
           day == getDay(cellIndex)) {
