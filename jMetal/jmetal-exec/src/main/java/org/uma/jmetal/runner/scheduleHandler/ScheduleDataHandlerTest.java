@@ -250,7 +250,7 @@ public class ScheduleDataHandlerTest {
       if (attendingStudents <= handler.getClassroomCapacity(option.get(0))) {
         int cell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2);
         if (solution.getVariableValue(cell) == 0) {
-          System.out.println("OPCION: OK");
+          System.out.println("OPCION " + option + " : OK");
         } else {
           System.out.println("ERROR! LA OPCION " + option + " INTENTA LA CELDA " + cell + " LA CUAL ESTA OCUPADA");
         }
