@@ -26,7 +26,8 @@ public class ScheduleDataHandlerTest {
     solution.setVariableValue(121, 11);
     solution.setVariableValue(131, 1);
 
-    System.out.println("HANDLER DATA CARGADA");
+    System.out.println("");
+    System.out.println("DATOS CARGADOS");
 
     System.out.println("");
     System.out.println("-------------");
@@ -209,5 +210,20 @@ public class ScheduleDataHandlerTest {
       System.out.println("ERROR! LOS DIAS ESPERADOS SON 0, 1, 2 SE OBTUVIERON " + handler.getCandidateDaysForPair(488, solution));
     }
     solution.setVariableValue(488, 0);
+
+    System.out.println("testeando funcion getVictimSetTurnClassroom");
+    solution.setVariableValue(488, 01);
+    solution.setVariableValue(485, 21);
+    solution.setVariableValue(388, 01);
+    solution.setVariableValue(500, 01);
+    HashSet<Integer> expectedClasses = new HashSet<Integer>();
+    solution.setVariableValue(488, 11);
+    expectedClasses.add(488);
+    expectedClasses.add(485);
+    if (handler.getVictimSetTurnClassroom(480, solution).containsAll(expectedClasses)) {
+      System.out.println("OK");
+    } else {
+      System.out.println("ERROR! LOS INDICES ESPERADOS SON 488, 485 SE OBTUVIERON " + handler.getVictimSetTurnClassroom(480, solution));
+    }
   }
 }
