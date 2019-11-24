@@ -219,7 +219,7 @@ public class Schedule extends AbstractIntegerProblem {
         solution.setVariableValue(targetCell, classWithType);
         // we must also set the pair
         if (type < 2) {
-          int pairCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(3)
+          int pairCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(3);
           solution.setVariableValue(pairCell, classWithType);
         }
       }
