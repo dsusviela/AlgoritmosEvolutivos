@@ -166,14 +166,14 @@ public class ScheduleDataHandler {
   }
   // given a cellIndex and a solution returns if the value in cellIndex has a pair
   public boolean hasPair(int cellIndex, IntegerSolution solution) {
-    boolean thereIsAPair = (solution.getVariableValue(cellIndex) + 10) != 0 && cellIndex != solution.getVariableValue(cellIndex+10);
+    boolean thereIsAPair = (solution.getVariableValue(cellIndex) + 10) != -1 && cellIndex != solution.getVariableValue(cellIndex+10);
     int locationPairIsPointing = solution.getVariableValue(solution.getVariableValue(cellIndex+10)+10);
     boolean pairIsPointingAtMe = locationPairIsPointing == cellIndex;
     return (thereIsAPair && pairIsPointingAtMe);
   }
   // returns if the index has a class
   public boolean indexHasClass(int cellIndex, IntegerSolution solution) {
-    return (solution.getVariableValue(cellIndex) != 0);
+    return (solution.getVariableValue(cellIndex) != -1);
   }
   // given an index of the matrix returns the day
   public int getDay(int index) {
