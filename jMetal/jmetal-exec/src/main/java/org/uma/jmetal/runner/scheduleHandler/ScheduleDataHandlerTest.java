@@ -299,8 +299,9 @@ public class ScheduleDataHandlerTest {
       int classType = handler.getClassType(solution.getVariableValue(cellIndex));
       int classCourse = handler.getClassCourse(solution.getVariableValue(cellIndex));
       int previousValue = courseHeatMap.get(classCourse).get(classType);
+      previousValue++;
       HashMap<Integer, Integer> aux = courseHeatMap.get(classCourse);
-      aux.put(classType, previousValue++);
+      aux.put(classType, previousValue);
       courseHeatMap.put(classCourse, aux);
     }
 
@@ -308,7 +309,7 @@ public class ScheduleDataHandlerTest {
     for (Integer course : courseMapClasses.keySet()) {
       for (int type = 0; type < 4; type++) {
         if (handler.getCourseMapClasses().get(course).get(type) == courseHeatMap.get(course).get(type)) {
-
+          System.out.println("OK " + course + " DEL TPO " + type);
         } else  {
           int difference = handler.getCourseMapClasses().get(course).get(type) - courseHeatMap.get(course).get(type);
           System.out.println("ERROR! FALTAN " + difference + " CLASES DE " + course + " DEL TPO " + type);
