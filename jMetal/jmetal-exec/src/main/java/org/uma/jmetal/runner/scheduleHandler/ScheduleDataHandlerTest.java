@@ -230,7 +230,7 @@ public class ScheduleDataHandlerTest {
 
     // reseting solution for next tests
     for (int i = 0; i < 2880; i++) {
-      solution.setVariableValue(i, 0);
+      solution.setVariableValue(i, -1);
     }
 
     System.out.println("testeando funcion getFeasibleClassroomsNoPair");
