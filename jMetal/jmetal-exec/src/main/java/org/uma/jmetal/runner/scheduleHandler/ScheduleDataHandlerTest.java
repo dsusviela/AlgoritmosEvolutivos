@@ -296,6 +296,9 @@ public class ScheduleDataHandlerTest {
       }
     }
     for (int cellIndex = 0; cellIndex < handler.getCellsInMatrix(); cellIndex++) {
+      if (solution.getVariableValue(cellIndex) == -1) {
+        continue;
+      }
       int classType = handler.getClassType(solution.getVariableValue(cellIndex));
       int classCourse = handler.getClassCourse(solution.getVariableValue(cellIndex));
       int previousValue = courseHeatMap.get(classCourse).get(classType);
