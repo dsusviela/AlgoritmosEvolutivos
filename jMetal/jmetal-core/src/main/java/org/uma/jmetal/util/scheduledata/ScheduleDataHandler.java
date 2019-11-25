@@ -228,7 +228,7 @@ public class ScheduleDataHandler {
               classroomData.add(classroom);
               classroomData.add(turn);
               classroomData.add(day);
-              if (!evaluatedOptions.contains(classroomData) && solution.getVariableValue(cell) == 0) {
+              if (!evaluatedOptions.contains(classroomData) && solution.getVariableValue(cell) == -1) {
                 evaluatedOptions.add(classroomData);
                 classroomSet.put(classroomSet.size(), classroomData);
               }
@@ -267,7 +267,7 @@ public class ScheduleDataHandler {
                   classroomData.add(turn);
                   classroomData.add(day);
                   classroomData.add(dayPair);
-                  if (!evaluatedOptions.contains(classroomData) && solution.getVariableValue(cellPair) == 0) {
+                  if (!evaluatedOptions.contains(classroomData) && solution.getVariableValue(cellPair) == -1) {
                     evaluatedOptions.add(classroomData);
                     classroomSet.put(classroomSet.size(), classroomData);
                   }
@@ -299,7 +299,7 @@ public class ScheduleDataHandler {
     for (int cellCandidate = startingCell; cellCandidate < cellsInMatrix;
          cellCandidate += (skipDay ? 59 : 1)) {
       // check if candidate is available
-      if (solution.getVariableValue(cellCandidate) == 0) {
+      if (solution.getVariableValue(cellCandidate) == -1) {
         // get the capacity of the candidate
         int classroom = getClassroom(cellIndex);
         int capacity = getClassroomCapacity(classroom);
@@ -352,7 +352,7 @@ public class ScheduleDataHandler {
       // check if its not the same cell or if its empty
       // note that all empty indexes were discarded in parent function
       if (getClassroom(cellCandidate) == classroom ||
-          solution.getVariableValue(cellCandidate) == 0 ||
+          solution.getVariableValue(cellCandidate) == -1 ||
           cellCandidate == solution.getVariableValue(cellIndex + 10)) {
         // we should continue
         skipDay = !skipDay;
@@ -441,7 +441,7 @@ public class ScheduleDataHandler {
         candidateCell +=i;
         // if its not the same as the original and its available
         if (candidateCell != classroom &&
-            solution.getVariableValue(candidateCell) == 0) {
+            solution.getVariableValue(candidateCell) == -1) {
           // we can perform the insertion
           int originalValue = solution.getVariableValue(cellIndex);
           int originalPair = solution.getVariableValue(cellIndex + 10);
@@ -497,7 +497,7 @@ public class ScheduleDataHandler {
         possibleVictim += i;
         // we must find classes in the same classroom and turn to swap
         if (possibleVictim == cellIndex || 
-            solution.getVariableValue(possibleVictim) == 0 ||
+            solution.getVariableValue(possibleVictim) == -1 ||
             day == getDay(cellIndex)) {
           continue;
         }

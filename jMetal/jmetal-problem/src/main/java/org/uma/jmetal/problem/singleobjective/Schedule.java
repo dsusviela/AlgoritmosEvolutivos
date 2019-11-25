@@ -23,7 +23,7 @@ public class Schedule extends AbstractIntegerProblem {
     List<Integer> upperLimit = new ArrayList<>(getNumberOfVariables()) ;
 
     for (int i = 0; i < getNumberOfVariables(); i++) {
-      lowerLimit.add(0);
+      lowerLimit.add(-1);
       upperLimit.add(cellsInMatrix);
     }
     setLowerLimit(lowerLimit);
@@ -197,7 +197,7 @@ public class Schedule extends AbstractIntegerProblem {
   public IntegerSolution createSolution() {
     IntegerSolution solution = new DefaultIntegerSolution(this);
     for (int index = 0; index < cellsInMatrix; index++) {
-      solution.setVariableValue(index, 0);
+      solution.setVariableValue(index, -1);
     }
     HashMap<Integer, ArrayList<Integer>> courseMapClasses = handler.getCourseMapClasses();
     for (Integer course : courseMapClasses.keySet()) {
