@@ -224,11 +224,15 @@ public class ScheduleDataHandler {
             int cell = 60*classroom + 20*turn + 2*day;
             for (int i = 0; i < 2; i++) {
               cell += i;
+              // if the cell is un use, we must find another one
+              if (solution.getVariableValue(cell) == -1) {
+                continue;
+              }
               ArrayList<Integer> classroomData = new ArrayList<Integer>();
               classroomData.add(classroom);
               classroomData.add(turn);
               classroomData.add(day);
-              if (!evaluatedOptions.contains(classroomData) && solution.getVariableValue(cell) == -1) {
+              if (!evaluatedOptions.contains(classroomData)) {
                 evaluatedOptions.add(classroomData);
                 classroomSet.put(classroomSet.size(), classroomData);
               }
@@ -257,6 +261,10 @@ public class ScheduleDataHandler {
             int cell = 60*classroom + 20*turn + 2*day;
             for (int i = 0; i < 2; i++) {
               cell += i;
+              // if the cell is un use, we must find another one
+              if (solution.getVariableValue(cell) == -1) {
+                continue;
+              }
               // now we must find a different day for the pair
               HashSet<Integer> possibleDays = getCandidateDaysForPair(cell, solution);
               for (Integer dayPair : possibleDays) {
