@@ -202,25 +202,27 @@ public class Schedule extends AbstractIntegerProblem {
     HashMap<Integer, ArrayList<Integer>> courseMapClasses = handler.getCourseMapClasses();
     for (Integer course : courseMapClasses.keySet()) {
       ArrayList<Integer> classTypes = courseMapClasses.get(course);
-      for (Integer type : classTypes) {
-        int classWithType = course * 10 + type;
-        HashMap<Integer, ArrayList<Integer>> classroomData = new HashMap<Integer, ArrayList<Integer>>();
-        if (type < 2) {
-          classroomData = handler.getFeasibleClassroomsWithPair(classWithType, solution);
-        } else {
-          classroomData = handler.getFeasibleClassroomsNoPair(classWithType, solution);
-        }
-        if (classroomData.isEmpty()) {
-          // we are in deep trouble
-          return null;
-        }
-        ArrayList<Integer> option = classroomData.get(JMetalRandom.getInstance().nextInt(0, classroomData.size()));
-        int targetCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2);
-        solution.setVariableValue(targetCell, classWithType);
-        // we must also set the pair
-        if (type < 2) {
-          int pairCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(3);
-          solution.setVariableValue(pairCell, classWithType);
+      for (int type = 0; type < 4; type++) {
+        for (int amountClassesType = 0; amountClassesType < classTypes.get(type) ; amountClassesType++) {
+          int classWithType = course * 10 + type;
+          HashMap<Integer, ArrayList<Integer>> classroomData = new HashMap<Integer, ArrayList<Integer>>();
+          if (type < 2) {
+            classroomData = handler.getFeasibleClassroomsWithPair(classWithType, solution);
+          } else {
+            classroomData = handler.getFeasibleClassroomsNoPair(classWithType, solution);
+          }
+          if (classroomData.isEmpty()) {
+            // we are in deep trouble
+            return null;
+          }
+          ArrayList<Integer> option = classroomData.get(JMetalRandom.getInstance().nextInt(0, classroomData.size()));
+          int targetCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2);
+          solution.setVariableValue(targetCell, classWithType);
+          // we must also set the pair
+          if (type < 2) {
+            int pairCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(3);
+            solution.setVariableValue(pairCell, classWithType);
+          }
         }
       }
     }
