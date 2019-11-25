@@ -195,10 +195,12 @@ public class Schedule extends AbstractIntegerProblem {
 
   @Override
   public IntegerSolution createSolution() {
+    // initialize empty solution
     IntegerSolution solution = new DefaultIntegerSolution(this);
     for (int index = 0; index < cellsInMatrix; index++) {
       solution.setVariableValue(index, -1);
     }
+    // we get all courses
     HashMap<Integer, ArrayList<Integer>> courseMapClasses = handler.getCourseMapClasses();
     for (Integer course : courseMapClasses.keySet()) {
       ArrayList<Integer> classTypes = courseMapClasses.get(course);

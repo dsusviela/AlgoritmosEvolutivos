@@ -251,6 +251,7 @@ public class ScheduleDataHandler {
     for (Integer classroom : classroomNameMap.keySet()) {
       int classroomCapacityNeeded = classroomCapacity.get(classroomNameMap.get(classroom));
       if (capacityNeeded < classroomCapacityNeeded) {
+        // we have a classroom, we must find a slot in solution
         for (int turn = 0; turn < 3; turn++) {
           for (int day = 0; day < 5; day++) {
             int cell = 60*classroom + 20*turn + 2*day;
