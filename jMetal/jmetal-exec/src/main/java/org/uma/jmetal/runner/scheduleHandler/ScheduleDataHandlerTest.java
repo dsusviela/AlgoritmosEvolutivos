@@ -245,7 +245,7 @@ public class ScheduleDataHandlerTest {
     for (ArrayList<Integer> option : dataClass10.values()) {
       if (attendingStudents <= handler.getClassroomCapacity(option.get(0))) {
         int cell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2);
-        if (solution.getVariableValue(cell) == 0) {
+        if (solution.getVariableValue(cell) == -1) {
           System.out.println("OPCION " + option + " : OK");
         } else {
           System.out.println("ERROR! LA OPCION " + option + " INTENTA LA CELDA " + cell + " LA CUAL ESTA OCUPADA");
@@ -268,9 +268,9 @@ public class ScheduleDataHandlerTest {
     for (ArrayList<Integer> option : dataClass10.values()) {
       if (attendingStudents <= handler.getClassroomCapacity(option.get(0))) {
         int cell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2);
-        if (solution.getVariableValue(cell) == 0) {
+        if (solution.getVariableValue(cell) == -1) {
           int pairCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(3);
-          if (solution.getVariableValue(pairCell) != 0) {
+          if (solution.getVariableValue(pairCell) != -1) {
             System.out.println("ERROR! LA OPCION " + option + " INTENTA LA CELDA " + pairCell + " PARA EL PAR LA CUAL ESTA OCUPADA");
           }
         } else {
