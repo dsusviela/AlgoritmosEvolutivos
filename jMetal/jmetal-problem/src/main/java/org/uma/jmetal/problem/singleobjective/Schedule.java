@@ -9,13 +9,14 @@ import org.uma.jmetal.util.scheduledata.ScheduleDataHandler;
 import java.util.*;
 
 public class Schedule extends AbstractIntegerProblem {
-  private int cellsInMatrix = 2880;
+  private int cellsInMatrix;
   private ScheduleDataHandler handler;
 
   public Schedule(ScheduleDataHandler dataHandler) {
     handler = dataHandler;
     handler.generateInstance();
     cellsInMatrix = handler.getClassroomCapacity().keySet().size() * 60;
+    handler.setCellsInMatrix(cellsInMatrix);
     setNumberOfVariables(cellsInMatrix);
     setNumberOfObjectives(1);
     setName("Schedule");
@@ -218,12 +219,14 @@ public class Schedule extends AbstractIntegerProblem {
             return null;
           }
           ArrayList<Integer> option = classroomData.get(JMetalRandom.getInstance().nextInt(0, classroomData.size()-1));
-          int targetCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2);
+          int targetCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2) + option.get(3);
           solution.setVariableValue(targetCell, classWithType);
           // we must also set the pair
           if (type < 2) {
-            int pairCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(3);
+            int pairCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(4) + option.get(5);
             solution.setVariableValue(pairCell, classWithType);
+            solution.setVariableValue(targetCell + 10, pairCell);
+            solution.setVariableValue(pairCell + 10, targetCell);
           }
         }
       }

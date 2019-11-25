@@ -8,7 +8,7 @@ import java.util.HashSet;
 
 public class ScheduleDataHandler {
   // total cells in matrix
-  private int cellsInMatrix = 2880;
+  private int cellsInMatrix;
   // total courses in matrix
   private int amountCourses;
   // how 'wrong' is to have uneven distribution of courses over the turns in a given day
@@ -218,20 +218,21 @@ public class ScheduleDataHandler {
     // if it is then it is a feasible class
     for (Integer classroom : classroomNameMap.keySet()) {
       int classroomCapacityNeeded = classroomCapacity.get(classroomNameMap.get(classroom));
-      if (capacityNeeded < classroomCapacityNeeded) {
+      if (capacityNeeded <= classroomCapacityNeeded) {
         for (int turn = 0; turn < 3; turn++) {
           for (int day = 0; day < 5; day++) {
             int cell = 60*classroom + 20*turn + 2*day;
             for (int i = 0; i < 2; i++) {
               cell += i;
               // if the cell is un use, we must find another one
-              if (solution.getVariableValue(cell) == -1) {
+              if (solution.getVariableValue(cell) != -1) {
                 continue;
               }
               ArrayList<Integer> classroomData = new ArrayList<Integer>();
               classroomData.add(classroom);
               classroomData.add(turn);
               classroomData.add(day);
+              classroomData.add(i);
               if (!evaluatedOptions.contains(classroomData)) {
                 evaluatedOptions.add(classroomData);
                 classroomSet.put(classroomSet.size(), classroomData);
@@ -254,7 +255,7 @@ public class ScheduleDataHandler {
     // if it is then it is a feasible class
     for (Integer classroom : classroomNameMap.keySet()) {
       int classroomCapacityNeeded = classroomCapacity.get(classroomNameMap.get(classroom));
-      if (capacityNeeded < classroomCapacityNeeded) {
+      if (capacityNeeded <= classroomCapacityNeeded) {
         // we have a classroom, we must find a slot in solution
         for (int turn = 0; turn < 3; turn++) {
           for (int day = 0; day < 5; day++) {
@@ -262,7 +263,7 @@ public class ScheduleDataHandler {
             for (int i = 0; i < 2; i++) {
               cell += i;
               // if the cell is un use, we must find another one
-              if (solution.getVariableValue(cell) == -1) {
+              if (solution.getVariableValue(cell) != -1) {
                 continue;
               }
               // now we must find a different day for the pair
@@ -275,7 +276,9 @@ public class ScheduleDataHandler {
                   classroomData.add(classroom);
                   classroomData.add(turn);
                   classroomData.add(day);
+                  classroomData.add(i);
                   classroomData.add(dayPair);
+                  classroomData.add(j);
                   if (!evaluatedOptions.contains(classroomData) && solution.getVariableValue(cellPair) == -1) {
                     evaluatedOptions.add(classroomData);
                     classroomSet.put(classroomSet.size(), classroomData);
