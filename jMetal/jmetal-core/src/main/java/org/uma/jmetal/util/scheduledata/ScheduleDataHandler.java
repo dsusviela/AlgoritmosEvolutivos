@@ -203,6 +203,8 @@ public class ScheduleDataHandler {
     int year = getCourseMapYear().get(course);
     amountOfStudents = (int) (getAttendanceFactor().get(year) *
         amountOfStudents * getTypeProportionInCourse(type, course));
+    // we must normalize for big attendance
+    amountOfStudents = Math.min(amountOfStudents, 350);
     return amountOfStudents;
   }
 

@@ -215,7 +215,7 @@ public class Schedule extends AbstractIntegerProblem {
             // we are in deep trouble
             return null;
           }
-          ArrayList<Integer> option = classroomData.get(JMetalRandom.getInstance().nextInt(0, classroomData.size()));
+          ArrayList<Integer> option = classroomData.get(JMetalRandom.getInstance().nextInt(0, classroomData.size()-1));
           int targetCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2);
           solution.setVariableValue(targetCell, classWithType);
           // we must also set the pair
