@@ -282,5 +282,8 @@ public class ScheduleDataHandlerTest {
       }
     }
     
+    if (problem.createSolution() == null) {
+      System.out.println("ERROR! EN LA GENERACION AZAROSA DE UNA SOLUCION");
+    }
   }
 }
