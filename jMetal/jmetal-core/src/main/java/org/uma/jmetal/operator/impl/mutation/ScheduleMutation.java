@@ -279,7 +279,7 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
         int cellPairValue = solution.getVariableValue(cellPairIndex);
 
         // Solve collisions with the cell's pair
-        if (solution.getVariableValue(cellPairIndex + distance) == 0) {
+        if (solution.getVariableValue(cellPairIndex + distance) == -1) {
             // Swap the cells and the pair references, and the reference to me of my pair
             altSolution.setVariableValue(cellPairIndex + distance, cellPairValue);
             altSolution.setVariableValue(cellPairIndex + distance + 10, solution.getVariableValue(cellPairIndex + 10));
