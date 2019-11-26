@@ -216,6 +216,12 @@ public class Schedule extends AbstractIntegerProblem {
           }
           if (classroomData.isEmpty()) {
             // we are in deep trouble
+            // we need to find a candidate to swap with us
+            if (type < 2) {
+              solution = handler.insertPairIntoSolution(classWithType, solution);
+            } else {
+              solution = handler.insertClassIntoSolution(classWithType, solution);
+            }
             return null;
           }
           ArrayList<Integer> option = classroomData.get(JMetalRandom.getInstance().nextInt(0, classroomData.size()-1));

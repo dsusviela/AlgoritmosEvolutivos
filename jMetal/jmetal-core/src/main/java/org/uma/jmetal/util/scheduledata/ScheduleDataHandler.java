@@ -292,8 +292,99 @@ public class ScheduleDataHandler {
     }
     return classroomSet;
   }
+  
+  private HashSet<Integer> getVictims(boolean hasPair, int classWithType, IntegerSolution originalSolution) {
+    HashSet<Integer> vicitimSet = new HashSet<Integer>();
+    int capacityNeeded = getAttendingStudents(classWithType);
+    for (int possibleVictim = 0; possibleVictim < getCellsInMatrix(); possibleVictim++) {
+      if (!isIndexClass(possibleVictim)) {
+        continue;
+      }
+      int classroomCapacity = getClassroomCapacity(getClassroom(possibleVictim));
+      if (capacityNeeded <= classroomCapacity) {
+        int victimClassWithType = originalSolution.getVariableValue(possibleVictim);
+        HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = (hasPair ? 
+            getFeasibleClassroomsWithPair(victimClassWithType, originalSolution) : 
+            getFeasibleClassroomsNoPair(victimClassWithType, originalSolution));
+        if (newSlotsForVictim.isEmpty()) {
+          continue;
+        }
+        vicitimSet.add(possibleVictim);
+      }
+    }
+    if (vicitimSet.isEmpty()) {
+      // were in deeper trouble
+      return null;
+    }
+    return vicitimSet;
+  }
+
+  private IntegerSolution moveVictimToFeasibleClassroom(boolean hasPair, int victim, IntegerSolution originalSolution) {
+    IntegerSolution solution = (IntegerSolution) originalSolution.copy();
+    int victimClassWithType = originalSolution.getVariableValue(victim);
+    if (hasPair) {
+      HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = getFeasibleClassroomsWithPair(victimClassWithType, originalSolution);
+      ArrayList<Integer> option = newSlotsForVictim.get(0);
+      int newPosition = 60*option.get(0) + 20*option.get(1) + 2*option.get(2) + option.get(3);
+      int victimValue = solution.getVariableValue(victim);
+      solution.setVariableValue(newPosition, victimValue);
+      solution.setVariableValue(newPosition + 10, newPosition);
+      solution.setVariableValue(victim, -1);
+      solution.setVariableValue(victim + 10, -1);
+    } else {
+      HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = getFeasibleClassroomsNoPair(victimClassWithType, originalSolution);
+      ArrayList<Integer> option = newSlotsForVictim.get(0);
+      int newPosition = 60*option.get(0) + 20*option.get(1) + 2*option.get(2) + option.get(3);
+      int newPositionPair = 60*option.get(0) + 20*option.get(1) + 2*option.get(4) + option.get(5);
+      int victimValue = solution.getVariableValue(victim);
+      int victimPair = solution.getVariableValue(victim + 10);
+      solution.setVariableValue(newPosition, victimValue);
+      solution.setVariableValue(newPosition + 10, newPositionPair);
+      solution.setVariableValue(newPositionPair, victimValue);
+      solution.setVariableValue(newPositionPair + 10, newPosition);
+      solution.setVariableValue(victim, -1);
+      solution.setVariableValue(victim + 10, -1);
+      solution.setVariableValue(victimPair, -1);
+      solution.setVariableValue(victimPair + 10, -1);
+    }
+    return solution;
+  }
 
   // CONFLICT RESOLUTION FUNCTIONS
+
+  // inserts a pair into the solution. Only chooses victims that are pairs themselves
+  public IntegerSolution insertPairIntoSolution(int classWithType, IntegerSolution originalSolution) {
+    IntegerSolution solution = (IntegerSolution) originalSolution.copy();
+    HashSet<Integer> victimSet = getVictims(true, classWithType, originalSolution);
+    if (victimSet == null) {
+      // gg wp
+      return null;
+    }
+    int victim = chooseVictim(victimSet, originalSolution);
+    int victimPair = originalSolution.getVariableValue(victim + 10);
+    solution = moveVictimToFeasibleClassroom(true, victim, originalSolution);
+    solution.setVariableValue(victim, classWithType);
+    solution.setVariableValue(victimPair, classWithType);
+    solution.setVariableValue(victim + 10, victimPair);
+    solution.setVariableValue(victimPair + 10, victim);
+    return solution;
+  }
+
+  // inserts a class into the solution. Only chooses victims that dont have a pair
+  public IntegerSolution insertClassIntoSolution(int classWithType, IntegerSolution originalSolution) {
+    IntegerSolution solution = (IntegerSolution) originalSolution.copy();
+    HashSet<Integer> victimSet = getVictims(false, classWithType, originalSolution);
+    if (victimSet == null) {
+      // gg wp
+      return null;
+    }
+    int victim = chooseVictim(victimSet, solution);
+    solution = moveVictimToFeasibleClassroom(false, victim, originalSolution);
+    solution.setVariableValue(victim, classWithType);
+    solution.setVariableValue(victim + 10, victim);
+    return solution;
+  }
+
   public IntegerSolution findFeasibleClassroom(int cellIndex,
                                                IntegerSolution solution) {
     int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
@@ -313,7 +404,7 @@ public class ScheduleDataHandler {
       // check if candidate is available
       if (solution.getVariableValue(cellCandidate) == -1) {
         // get the capacity of the candidate
-        int classroom = getClassroom(cellIndex);
+        int classroom = getClassroom(cellCandidate);
         int capacity = getClassroomCapacity(classroom);
         if (attendingStudents <= capacity) {
           // candidate is fit for insertion
@@ -350,7 +441,7 @@ public class ScheduleDataHandler {
     }
   }
   
-  // AUXILIARY FUNCTIONS FOR FIND FEASIBLE CLASSROOM
+  // AUXILIARY FUNCTIONS FOR FINDING A FEASIBLE CLASSROOM
   public HashSet<Integer> getVictimSetTurnDay(int cellIndex, int attendingStudents, IntegerSolution originalSolution) {
     IntegerSolution solution = (IntegerSolution) originalSolution.copy();
     int turn = getTurn(cellIndex);
