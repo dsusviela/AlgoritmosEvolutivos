@@ -324,16 +324,26 @@ public class ScheduleDataHandler {
     int victimClassWithType = originalSolution.getVariableValue(victim);
     if (hasPair) {
       HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = getFeasibleClassroomsWithPair(victimClassWithType, originalSolution);
-      ArrayList<Integer> option = newSlotsForVictim.get(0);
-      int newPosition = 60*option.get(0) + 20*option.get(1) + 2*option.get(2) + option.get(3);
-      int victimValue = solution.getVariableValue(victim);
-      solution.setVariableValue(newPosition, victimValue);
-      solution.setVariableValue(newPosition + 10, newPosition);
-      solution.setVariableValue(victim, -1);
-      solution.setVariableValue(victim + 10, -1);
-    } else {
-      HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = getFeasibleClassroomsNoPair(victimClassWithType, originalSolution);
-      ArrayList<Integer> option = newSlotsForVictim.get(0);
+      ArrayList<Integer> option = null;
+      int vicitmTurn = getTurn(victim);
+      int victimDay = getDay(victim);
+      // search for option with same turn and day
+      for (ArrayList<Integer> possibleOption : newSlotsForVictim.values()) {
+        if (possibleOption.get(1) == vicitmTurn && possibleOption.get(2) == victimDay) {
+          option = possibleOption;
+          break;
+        }
+      }
+      // if we didnt find an option lets find one with just the same turn
+      if (option == null) {
+        for (ArrayList<Integer> possibleOption : newSlotsForVictim.values()) {
+          if (possibleOption.get(1) == vicitmTurn) {
+            option = possibleOption;
+            break;
+          }
+        }
+      }
+      // if nothing was found, just take any
       int newPosition = 60*option.get(0) + 20*option.get(1) + 2*option.get(2) + option.get(3);
       int newPositionPair = 60*option.get(0) + 20*option.get(1) + 2*option.get(4) + option.get(5);
       int victimValue = solution.getVariableValue(victim);
@@ -346,6 +356,15 @@ public class ScheduleDataHandler {
       solution.setVariableValue(victim + 10, -1);
       solution.setVariableValue(victimPair, -1);
       solution.setVariableValue(victimPair + 10, -1);
+    } else {
+      HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = getFeasibleClassroomsNoPair(victimClassWithType, originalSolution);
+      ArrayList<Integer> option = newSlotsForVictim.get(0);
+      int newPosition = 60*option.get(0) + 20*option.get(1) + 2*option.get(2) + option.get(3);
+      int victimValue = solution.getVariableValue(victim);
+      solution.setVariableValue(newPosition, victimValue);
+      solution.setVariableValue(newPosition + 10, newPosition);
+      solution.setVariableValue(victim, -1);
+      solution.setVariableValue(victim + 10, -1);
     }
     return solution;
   }
