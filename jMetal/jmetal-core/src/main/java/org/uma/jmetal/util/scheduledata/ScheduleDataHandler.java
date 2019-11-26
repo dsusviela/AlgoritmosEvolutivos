@@ -343,7 +343,10 @@ public class ScheduleDataHandler {
           }
         }
       }
-      // if nothing was found, just take any
+      // if nothing was found, we're done for
+      if (option == null) {
+        return null;
+      }
       int newPosition = 60*option.get(0) + 20*option.get(1) + 2*option.get(2) + option.get(3);
       int newPositionPair = 60*option.get(0) + 20*option.get(1) + 2*option.get(4) + option.get(5);
       int victimValue = solution.getVariableValue(victim);
