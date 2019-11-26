@@ -18,7 +18,7 @@ public class ScheduleDataHandlerTest {
     ScheduleDataHandler handler = new ScheduleDataHandler();
     Schedule problem = new Schedule(handler);
     IntegerSolution solution = new DefaultIntegerSolution(problem);
-    for (int i = 0; i < 2880; i++) {
+    for (int i = 0; i < handler.getCellsInMatrix(); i++) {
       solution.setVariableValue(i, -1);
     }
     
@@ -229,14 +229,14 @@ public class ScheduleDataHandlerTest {
     }
 
     // reseting solution for next tests
-    for (int i = 0; i < 2880; i++) {
+    for (int i = 0; i < handler.getCellsInMatrix(); i++) {
       solution.setVariableValue(i, -1);
     }
 
     System.out.println("testeando funcion getFeasibleClassroomsNoPair");
     HashMap<Integer, ArrayList<Integer>> dataClass10 = handler.getFeasibleClassroomsNoPair(10, solution);
     attendingStudents = handler.getAttendingStudents(10);
-    if (dataClass10.size() == 30) {
+    if (dataClass10.size() == 60) {
       System.out.println("CANTIDAD DE OPCIONES: OK");
     } else {
       System.out.println("ERROR! SE ESPERABAN 60 OPCIONES Y SE OBTUVIERON " + dataClass10.size());
@@ -259,10 +259,10 @@ public class ScheduleDataHandlerTest {
     System.out.println("testeando funcion getFeasibleClassroomsWithPair");
     dataClass10 = handler.getFeasibleClassroomsWithPair(10, solution);
     attendingStudents = handler.getAttendingStudents(10);
-    if (dataClass10.size() == 72) {
+    if (dataClass10.size() == 288) {
       System.out.println("CANTIDAD DE OPCIONES: OK");
     } else {
-      System.out.println("ERROR! SE ESPERABAN 120 OPCIONES Y SE OBTUVIERON " + dataClass10.size());
+      System.out.println("ERROR! SE ESPERABAN 288 OPCIONES Y SE OBTUVIERON " + dataClass10.size());
     }
     System.out.println("testeando correctitud de las " + dataClass10.size() + " opciones");
     for (ArrayList<Integer> option : dataClass10.values()) {
@@ -286,36 +286,39 @@ public class ScheduleDataHandlerTest {
     solution = problem.createSolution();
     if (solution == null) {
       System.out.println("ERROR! EN LA GENERACION AZAROSA DE UNA SOLUCION (null)");
-    }
-    System.out.println("se genero una instancia, chequeando que esten todas las clases en la instancia");
-    HashMap<Integer, HashMap<Integer, Integer>> courseHeatMap = new HashMap<Integer, HashMap<Integer, Integer>>();
-    for (Integer course : handler.getCourseMapClasses().keySet()) {
-      courseHeatMap.put(course, new HashMap<Integer, Integer>());
-      for (int type = 0; type < 4; type++) {
-        courseHeatMap.get(course).put(type, 0);
+    } else {
+      System.out.println("se genero una instancia, chequeando que esten todas las clases en la instancia");
+      HashMap<Integer, HashMap<Integer, Integer>> courseHeatMap = new HashMap<Integer, HashMap<Integer, Integer>>();
+      for (Integer course : handler.getCourseMapClasses().keySet()) {
+        courseHeatMap.put(course, new HashMap<Integer, Integer>());
+        for (int type = 0; type < 4; type++) {
+          courseHeatMap.get(course).put(type, 0);
+        }
       }
-    }
-    for (int cellIndex = 0; cellIndex < handler.getCellsInMatrix(); cellIndex++) {
-      if (solution.getVariableValue(cellIndex) == -1) {
-        continue;
+      for (int cellIndex = 0; cellIndex < handler.getCellsInMatrix(); cellIndex++) {
+        if (solution.getVariableValue(cellIndex) == -1 || !handler.isIndexClass(cellIndex)) {
+          continue;
+        }
+        int classType = handler.getClassType(solution.getVariableValue(cellIndex));
+        int classCourse = handler.getClassCourse(solution.getVariableValue(cellIndex));
+        int previousValue = courseHeatMap.get(classCourse).get(classType);
+        previousValue++;
+        HashMap<Integer, Integer> aux = courseHeatMap.get(classCourse);
+        aux.put(classType, previousValue);
+        courseHeatMap.put(classCourse, aux);
       }
-      int classType = handler.getClassType(solution.getVariableValue(cellIndex));
-      int classCourse = handler.getClassCourse(solution.getVariableValue(cellIndex));
-      int previousValue = courseHeatMap.get(classCourse).get(classType);
-      previousValue++;
-      HashMap<Integer, Integer> aux = courseHeatMap.get(classCourse);
-      aux.put(classType, previousValue);
-      courseHeatMap.put(classCourse, aux);
-    }
 
-    HashMap<Integer, ArrayList<Integer>> courseMapClasses = handler.getCourseMapClasses();
-    for (Integer course : courseMapClasses.keySet()) {
-      for (int type = 0; type < 4; type++) {
-        if (handler.getCourseMapClasses().get(course).get(type) == courseHeatMap.get(course).get(type)) {
-          System.out.println("OK " + course + " DEL TPO " + type);
-        } else  {
-          int difference = handler.getCourseMapClasses().get(course).get(type) - courseHeatMap.get(course).get(type);
-          System.out.println("ERROR! FALTAN " + difference + " CLASES DE " + course + " DEL TPO " + type);
+      HashMap<Integer, ArrayList<Integer>> courseMapClasses = handler.getCourseMapClasses();
+      for (Integer course : courseMapClasses.keySet()) {
+        for (int type = 0; type < 4; type++) {
+          int expectedClassesPerType = handler.getCourseMapClasses().get(course).get(type);
+          expectedClassesPerType = (type < 2 ? expectedClassesPerType * 2: expectedClassesPerType);
+          if (expectedClassesPerType == courseHeatMap.get(course).get(type)) {
+            System.out.println("OK " + course + " DEL TPO " + type);
+          } else  {
+            int difference = handler.getCourseMapClasses().get(course).get(type) - courseHeatMap.get(course).get(type);
+            System.out.println("ERROR! FALTAN " + difference + " CLASES DE " + course + " DEL TPO " + type);
+          }
         }
       }
     }
