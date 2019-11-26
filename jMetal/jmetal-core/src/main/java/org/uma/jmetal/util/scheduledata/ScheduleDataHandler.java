@@ -297,13 +297,13 @@ public class ScheduleDataHandler {
     HashSet<Integer> vicitimSet = new HashSet<Integer>();
     int capacityNeeded = getAttendingStudents(classWithType);
     for (int possibleVictim = 0; possibleVictim < getCellsInMatrix(); possibleVictim++) {
-      if (!isIndexClass(possibleVictim)) {
+      int victimClassWithType = originalSolution.getVariableValue(possibleVictim);
+      if (!isIndexClass(possibleVictim) || victimClassWithType == -1) {
         continue;
       }
       int classroomCapacity = getClassroomCapacity(getClassroom(possibleVictim));
       if (capacityNeeded <= classroomCapacity) {
-        int victimClassWithType = originalSolution.getVariableValue(possibleVictim);
-        HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = (hasPair ? 
+        HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = (hasPair ?
             getFeasibleClassroomsWithPair(victimClassWithType, originalSolution) : 
             getFeasibleClassroomsNoPair(victimClassWithType, originalSolution));
         if (newSlotsForVictim.isEmpty()) {

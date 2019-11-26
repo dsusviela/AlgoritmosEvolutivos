@@ -296,7 +296,7 @@ public class ScheduleDataHandlerTest {
         }
       }
       for (int cellIndex = 0; cellIndex < handler.getCellsInMatrix(); cellIndex++) {
-        if (solution.getVariableValue(cellIndex) == -1) {
+        if (solution.getVariableValue(cellIndex) == -1 || !handler.isIndexClass(cellIndex)) {
           continue;
         }
         int classType = handler.getClassType(solution.getVariableValue(cellIndex));
@@ -311,7 +311,9 @@ public class ScheduleDataHandlerTest {
       HashMap<Integer, ArrayList<Integer>> courseMapClasses = handler.getCourseMapClasses();
       for (Integer course : courseMapClasses.keySet()) {
         for (int type = 0; type < 4; type++) {
-          if (handler.getCourseMapClasses().get(course).get(type) == courseHeatMap.get(course).get(type)) {
+          int expectedClassesPerType = handler.getCourseMapClasses().get(course).get(type);
+          expectedClassesPerType = (type < 2 ? expectedClassesPerType * 2: expectedClassesPerType);
+          if (expectedClassesPerType == courseHeatMap.get(course).get(type)) {
             System.out.println("OK " + course + " DEL TPO " + type);
           } else  {
             int difference = handler.getCourseMapClasses().get(course).get(type) - courseHeatMap.get(course).get(type);

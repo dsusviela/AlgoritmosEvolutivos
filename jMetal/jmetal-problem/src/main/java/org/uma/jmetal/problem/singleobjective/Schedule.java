@@ -222,11 +222,17 @@ public class Schedule extends AbstractIntegerProblem {
             } else {
               solution = handler.insertClassIntoSolution(classWithType, solution);
             }
-            return null;
+            if (solution == null) {
+              // we got to try again since this random went wrong and cant
+              // be salvaged
+              return createSolution();
+            }
+            continue;
           }
           ArrayList<Integer> option = classroomData.get(JMetalRandom.getInstance().nextInt(0, classroomData.size()-1));
           int targetCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2) + option.get(3);
           solution.setVariableValue(targetCell, classWithType);
+          solution.setVariableValue(targetCell + 10, targetCell);
           // we must also set the pair
           if (type < 2) {
             int pairCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(4) + option.get(5);
