@@ -291,7 +291,7 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
       if (altSolution == null) {
         altSolution = data.findFeasibleDay(cellIndex, child);
         if (altSolution == null) {
-          child = data.findFeasibleDayAndClassroom(cellIndex, child);
+          //child = data.findFeasibleDayAndClassroom(cellIndex, child);
           // findFeasibleDayAndClassroom leaves the parameter cell empty, so now I can put
           // the original value again there
           child.setVariableValue(cellIndex, originalParent.getVariableValue(cellIndex));
@@ -308,5 +308,6 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
         child.setVariableValue(cellIndex, originalParent.getVariableValue(cellIndex));
       }
     }
+    return altSolution;
   }
 }

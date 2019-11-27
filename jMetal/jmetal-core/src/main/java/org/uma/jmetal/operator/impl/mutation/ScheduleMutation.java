@@ -295,7 +295,7 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
             if (altSolution == null) {
                 altSolution = data.findFeasibleDay(cellPairIndex, altSolution);
                 if (altSolution == null) {
-                    altSolution = data.findFeasibleDayAndClassroom(cellPairIndex, altSolution);
+                    //altSolution = data.findFeasibleDayAndClassroom(cellPairIndex, altSolution);
                     // findFeasibleDayAndClassroom leaves the parameter cell empty, so now I can put
                     // the original value again there
                     altSolution.setVariableValue(cellPairIndex + distance, aux);

@@ -348,6 +348,44 @@ public class ScheduleDataHandler {
     if (hasPair) {
       HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = getFeasibleClassroomsWithPair(victimClassWithType,
           originalSolution);
+      ArrayList<Integer> option = null;
+      int vicitmTurn = getTurn(victimIndex);
+      int victimDay = getDay(victimIndex);
+      // search for option with same turn and day
+      for (ArrayList<Integer> possibleOption : newSlotsForVictim.values()) {
+        if (possibleOption.get(1) == vicitmTurn && possibleOption.get(2) == victimDay) {
+          option = possibleOption;
+          break;
+        }
+      }
+      // if we didnt find an option lets find one with just the same turn
+      if (option == null) {
+        for (ArrayList<Integer> possibleOption : newSlotsForVictim.values()) {
+          if (possibleOption.get(1) == vicitmTurn) {
+            option = possibleOption;
+            break;
+          }
+        }
+      }
+      // if nothing was found, we're done for
+      if (option == null) {
+        return null;
+      }
+      int newPosition = 60 * option.get(0) + 20 * option.get(1) + 2 * option.get(2) + option.get(3);
+      int newPositionPair = 60 * option.get(0) + 20 * option.get(1) + 2 * option.get(4) + option.get(5);
+      int victimValue = solution.getVariableValue(victimIndex);
+      int victimPair = solution.getVariableValue(victimIndex + 10);
+      solution.setVariableValue(newPosition, victimValue);
+      solution.setVariableValue(newPosition + 10, newPositionPair);
+      solution.setVariableValue(newPositionPair, victimValue);
+      solution.setVariableValue(newPositionPair + 10, newPosition);
+      solution.setVariableValue(victimIndex, AVAILABLE_INDEX);
+      solution.setVariableValue(victimIndex + 10, AVAILABLE_INDEX);
+      solution.setVariableValue(victimPair, AVAILABLE_INDEX);
+      solution.setVariableValue(victimPair + 10, AVAILABLE_INDEX);
+    } else {
+      HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = getFeasibleClassroomsNoPair(victimClassWithType,
+          originalSolution);
       ArrayList<Integer> option = newSlotsForVictim.get(0);
       int newPosition = 60 * option.get(0) + 20 * option.get(1) + 2 * option.get(2) + option.get(3);
       int victimValue = solution.getVariableValue(victimIndex);
@@ -355,22 +393,6 @@ public class ScheduleDataHandler {
       solution.setVariableValue(newPosition + 10, newPosition);
       solution.setVariableValue(victimIndex, AVAILABLE_INDEX);
       solution.setVariableValue(victimIndex + 10, AVAILABLE_INDEX);
-    } else {
-      HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = getFeasibleClassroomsNoPair(victimClassWithType,
-          originalSolution);
-      ArrayList<Integer> option = newSlotsForVictim.get(0);
-      int newPosition = 60 * option.get(0) + 20 * option.get(1) + 2 * option.get(2) + option.get(3);
-      int newPositionPair = 60 * option.get(0) + 20 * option.get(1) + 2 * option.get(4) + option.get(5);
-      int victimValue = solution.getVariableValue(victimIndex);
-      int victimPairIndex = solution.getVariableValue(victimIndex + 10);
-      solution.setVariableValue(newPosition, victimValue);
-      solution.setVariableValue(newPosition + 10, newPositionPair);
-      solution.setVariableValue(newPositionPair, victimValue);
-      solution.setVariableValue(newPositionPair + 10, newPosition);
-      solution.setVariableValue(victimIndex, AVAILABLE_INDEX);
-      solution.setVariableValue(victimIndex + 10, AVAILABLE_INDEX);
-      solution.setVariableValue(victimPairIndex, AVAILABLE_INDEX);
-      solution.setVariableValue(victimPairIndex + 10, AVAILABLE_INDEX);
     }
     return solution;
   }
