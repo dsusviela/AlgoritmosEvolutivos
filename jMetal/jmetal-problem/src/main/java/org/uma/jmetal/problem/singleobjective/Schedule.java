@@ -20,8 +20,8 @@ public class Schedule extends AbstractIntegerProblem {
     setNumberOfVariables(cellsInMatrix);
     setNumberOfObjectives(1);
     setName("Schedule");
-    List<Integer> lowerLimit = new ArrayList<>(getNumberOfVariables()) ;
-    List<Integer> upperLimit = new ArrayList<>(getNumberOfVariables()) ;
+    List<Integer> lowerLimit = new ArrayList<>(getNumberOfVariables());
+    List<Integer> upperLimit = new ArrayList<>(getNumberOfVariables());
 
     for (int i = 0; i < getNumberOfVariables(); i++) {
       lowerLimit.add(-1);
@@ -35,7 +35,7 @@ public class Schedule extends AbstractIntegerProblem {
   @Override
   public void evaluate(IntegerSolution solution) {
     LinkedList<Integer> solutionVector = new LinkedList<Integer>();
-    //solution = createFeasibleSolution(solution);
+    // solution = createFeasibleSolution(solution);
     for (int i = 0; i < cellsInMatrix; i++) {
       solutionVector.add(solution.getVariableValue(i));
     }
@@ -53,14 +53,12 @@ public class Schedule extends AbstractIntegerProblem {
     fitness += distanceBetweenPair(solution);
     solution.setObjective(0, fitness);
   }
-  
+
   private int distanceBetweenPair(IntegerSolution solution) {
     int consecutivePairs = 0;
     HashSet<Integer> evaluated = new HashSet<Integer>();
     for (int cellIndex = 0; cellIndex < cellsInMatrix; cellIndex++) {
-      if (!evaluated.contains(cellIndex) &&
-          handler.isIndexClass(cellIndex) && 
-          handler.hasPair(cellIndex, solution)) {
+      if (!evaluated.contains(cellIndex) && handler.isIndexClass(cellIndex) && handler.hasPair(cellIndex, solution)) {
         // we need to get the distance between the classes of the same pair
         int day = handler.getDay(cellIndex);
         int pairIndex = solution.getVariableValue(cellIndex + 10);
@@ -75,57 +73,11 @@ public class Schedule extends AbstractIntegerProblem {
     return consecutivePairs * handler.getConsecutivePenaltyFactor();
   }
 
-  private IntegerSolution createFeasibleSolution(IntegerSolution solution) {
-    solution = checkClassroomCapacity(solution);
-    solution = checkPairsDay(solution);
-    //solution = checkTurnDay(solution);
-    return solution;
-  }
-
-  private IntegerSolution checkClassroomCapacity(IntegerSolution originalSolution) {
-    IntegerSolution solution = (IntegerSolution) originalSolution.copy();
-    for (int cellIndex = 0; cellIndex < cellsInMatrix; cellIndex++) {
-      // we only want to iterate in the cells that have classes
-      if (handler.isIndexClass(cellIndex) && handler.indexHasClass(cellIndex, originalSolution)) {
-        int classroom = handler.getClassroom(cellIndex);
-        int capacity = handler.getClassroomCapacity(classroom);
-        int attendingStudents = handler.getAttendingStudents(originalSolution.getVariableValue(cellIndex));
-        // we now check if theres a capacity conflict
-        if (capacity < attendingStudents) {
-          // conflict resolution
-          int turn = handler.getTurn(cellIndex);
-          int day = handler.getDay(cellIndex);
-          solution = handler.findFeasibleClassroom(attendingStudents, cellIndex, solution);
-        }
-      }
-    }
-    return solution;
-  }
-
-  private IntegerSolution checkPairsDay(IntegerSolution solution) {
-    HashSet<Integer> evaluated = new HashSet<Integer>();
-    for (int cellIndex = 0; cellIndex < cellsInMatrix; cellIndex++) {
-      // we only need to check for pairs that havent been evaluated before
-      if (handler.isIndexClass(cellIndex) && handler.hasPair(cellIndex, solution)
-          && !evaluated.contains(cellIndex)) {
-        int day = handler.getDay(cellIndex);
-        int dayPair = handler.getDay(solution.getVariableValue(cellIndex + 10));
-        evaluated.add(cellIndex);
-        evaluated.add(cellIndex + 10);
-        // we need to check for feasibility
-        if (handler.distanceBetweenDays(day, dayPair) < 2) {
-          solution = handler.findFeasibleDay(cellIndex, solution);
-        }
-      }
-    }
-    return solution;
-  }
-
   private int overlap(int courseIndex1, int courseIndex2, IntegerSolution matrix) {
     int affectedStudents = 0;
     // checking if both classes actually collide
-    if (!(handler.getTurn(courseIndex1) == handler.getTurn(courseIndex2) &&
-        handler.getDay(courseIndex1) == handler.getDay(courseIndex1))) {
+    if (!(handler.getTurn(courseIndex1) == handler.getTurn(courseIndex2)
+        && handler.getDay(courseIndex1) == handler.getDay(courseIndex1))) {
       return affectedStudents;
     }
     // get the orientations affected by the collision
@@ -143,7 +95,7 @@ public class Schedule extends AbstractIntegerProblem {
     }
     // check if there is a third courses that collides aswell
     boolean jumpDay = true;
-    int startingCell = handler.getDay(courseIndex1)*2 + handler.getTurn(courseIndex1)*20;
+    int startingCell = handler.getDay(courseIndex1) * 2 + handler.getTurn(courseIndex1) * 20;
     for (int courseIndex3 = startingCell; courseIndex3 < cellsInMatrix; courseIndex3 += (jumpDay ? 59 : 1)) {
       Integer class3 = new Integer(matrix.getVariableValue(courseIndex3) / 10);
       if (courseIndex3 != courseIndex1 && courseIndex3 != courseIndex2) {
@@ -164,8 +116,7 @@ public class Schedule extends AbstractIntegerProblem {
   private int classTurnDistributionDisparity(IntegerSolution matrix) {
     // initializing structures
     int disparity = 0;
-    HashMap<Integer, HashMap<Integer, Integer>> courseHeatmap =
-        new HashMap<Integer, HashMap<Integer, Integer>>();
+    HashMap<Integer, HashMap<Integer, Integer>> courseHeatmap = new HashMap<Integer, HashMap<Integer, Integer>>();
     for (int course = 0; course < handler.getAmountCourses(); course++) {
       HashMap<Integer, Integer> turnHeatmap = new HashMap<Integer, Integer>();
       for (int turn = 0; turn < 3; turn++) {
@@ -189,7 +140,7 @@ public class Schedule extends AbstractIntegerProblem {
     for (HashMap<Integer, Integer> map : courseHeatmap.values()) {
       Integer minForCourse = Collections.min(map.values());
       Integer maxForCourse = Collections.max(map.values());
-      disparity += (maxForCourse - minForCourse)*handler.getDisparityFactor();
+      disparity += (maxForCourse - minForCourse) * handler.getDisparityFactor();
     }
     return disparity;
   }
@@ -206,7 +157,7 @@ public class Schedule extends AbstractIntegerProblem {
     for (Integer course : courseMapClasses.keySet()) {
       ArrayList<Integer> classTypes = courseMapClasses.get(course);
       for (int type = 0; type < 4; type++) {
-        for (int amountClassesType = 0; amountClassesType < classTypes.get(type) ; amountClassesType++) {
+        for (int amountClassesType = 0; amountClassesType < classTypes.get(type); amountClassesType++) {
           int classWithType = course * 10 + type;
           HashMap<Integer, ArrayList<Integer>> classroomData = new HashMap<Integer, ArrayList<Integer>>();
           if (type < 2) {
@@ -229,13 +180,14 @@ public class Schedule extends AbstractIntegerProblem {
             }
             continue;
           }
-          ArrayList<Integer> option = classroomData.get(JMetalRandom.getInstance().nextInt(0, classroomData.size()-1));
-          int targetCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(2) + option.get(3);
+          ArrayList<Integer> option = classroomData
+              .get(JMetalRandom.getInstance().nextInt(0, classroomData.size() - 1));
+          int targetCell = 60 * option.get(0) + 20 * option.get(1) + 2 * option.get(2) + option.get(3);
           solution.setVariableValue(targetCell, classWithType);
           solution.setVariableValue(targetCell + 10, targetCell);
           // we must also set the pair
           if (type < 2) {
-            int pairCell = 60*option.get(0) + 20*option.get(1) + 2*option.get(4) + option.get(5);
+            int pairCell = 60 * option.get(0) + 20 * option.get(1) + 2 * option.get(4) + option.get(5);
             solution.setVariableValue(pairCell, classWithType);
             solution.setVariableValue(targetCell + 10, pairCell);
             solution.setVariableValue(pairCell + 10, targetCell);

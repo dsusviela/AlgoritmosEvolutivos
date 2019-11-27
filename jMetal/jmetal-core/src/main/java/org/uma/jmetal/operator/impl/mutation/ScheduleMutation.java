@@ -128,10 +128,10 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
                     oldCellPairIndex = solution.getVariableValue(cellIndex + 10);
                     solution.setVariableValue(cellIndex, solution.getVariableValue(victimIndex));
                     solution.setVariableValue(cellIndex + 10, solution.getVariableValue(victimIndex + 10));
-                    solution.setVariableValue(oldCellPairIndex + 10, cellIndex);
+                    solution.setVariableValue(oldCellPairIndex + 10, victimIndex);
                     solution.setVariableValue(victimIndex, oldCellValue);
                     solution.setVariableValue(victimIndex + 10, oldCellPairIndex);
-                    solution.setVariableValue(solution.getVariableValue(victimIndex + 10), victimIndex);
+                    solution.setVariableValue(solution.getVariableValue(victimIndex + 10), cellIndex);
 
                     // Only in turn mutation, the pairs are exchanged too
                     if (mutationType == 1) {
@@ -279,7 +279,7 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
         int cellPairValue = solution.getVariableValue(cellPairIndex);
 
         // Solve collisions with the cell's pair
-        if (solution.getVariableValue(cellPairIndex + distance) == -1) {
+        if (data.isAvailable(cellPairIndex + distance, solution)) {
             // Swap the cells and the pair references, and the reference to me of my pair
             altSolution.setVariableValue(cellPairIndex + distance, cellPairValue);
             altSolution.setVariableValue(cellPairIndex + distance + 10, solution.getVariableValue(cellPairIndex + 10));

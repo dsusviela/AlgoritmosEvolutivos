@@ -5,20 +5,25 @@ import org.uma.jmetal.solution.IntegerSolution;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 
 public class ScheduleDataHandler {
+  // the value to represent an available cell
+  public static final int AVAILABLE_INDEX = -1;
   // total cells in matrix
   private int cellsInMatrix;
   // total courses in matrix
   private int amountCourses;
-  // how 'wrong' is to have uneven distribution of courses over the turns in a given day
+  // how 'wrong' is to have uneven distribution of courses over the turns in a
+  // given day
   private int disparityFactor;
   // how 'wrong' is to have consecutive days of the same pair
   private int consecutivePenaltyFactor;
   // given a course returns its orientations
   private HashMap<Integer, HashSet<Integer>> courseMapOrientation;
   // given a course returns its classes in order
-  // position 0 refers to lectures, 1 to practice, 2 single practice, 3 to single lecture
+  // position 0 refers to lectures, 1 to practice, 2 single practice, 3 to single
+  // lecture
   private HashMap<Integer, ArrayList<Integer>> courseMapClasses;
   // given the string id of a classroom returns the capacity
   private HashMap<String, Integer> classroomCapacity;
@@ -40,8 +45,8 @@ public class ScheduleDataHandler {
   }
 
   /*
-  * GETTERS AND SETTERS OF ALL FIELDS
-  */
+   * GETTERS AND SETTERS OF ALL FIELDS
+   */
 
   public int getCellsInMatrix() {
     return cellsInMatrix;
@@ -145,48 +150,62 @@ public class ScheduleDataHandler {
   }
 
   /*
-  * PUBLIC HELPER FUNCTIONS
-  */
+   * PUBLIC HELPER FUNCTIONS
+   */
 
   // given the *value* of a cell returns the course
   public int getClassCourse(Integer classWithType) {
     return classWithType / 10;
   }
+
   // given the *value* of a cell returns the type
   public int getClassType(Integer classWithType) {
     return classWithType % 10;
   }
+
   // returns the fraction of classes of the given type for the given course
   public Float getTypeProportionInCourse(int type, int course) {
     return (1f / courseMapClasses.get(course).get(type));
   }
+
   // given an index of the solution returns the corresponding classroom
   public int getClassroom(int cellIndex) {
     return (cellIndex / 60);
   }
+
   // given a cellIndex and a solution returns if the value in cellIndex has a pair
   public boolean hasPair(int cellIndex, IntegerSolution solution) {
-    boolean thereIsAPair = (solution.getVariableValue(cellIndex) + 10) != -1 && cellIndex != solution.getVariableValue(cellIndex+10);
-    int locationPairIsPointing = solution.getVariableValue(solution.getVariableValue(cellIndex+10)+10);
+    boolean thereIsAPair = !isAvailable(cellIndex + 10, solution)
+        && cellIndex != solution.getVariableValue(cellIndex + 10);
+    int locationPairIsPointing = solution.getVariableValue(solution.getVariableValue(cellIndex + 10) + 10);
     boolean pairIsPointingAtMe = locationPairIsPointing == cellIndex;
     return (thereIsAPair && pairIsPointingAtMe);
   }
+
   // returns if the index has a class
   public boolean indexHasClass(int cellIndex, IntegerSolution solution) {
-    return (solution.getVariableValue(cellIndex) != -1);
+    return (solution.getVariableValue(cellIndex) != AVAILABLE_INDEX);
   }
+
+  public boolean isAvailable(int cellIndex, IntegerSolution solution) {
+    return solution.getVariableValue(cellIndex) == AVAILABLE_INDEX;
+  }
+
   // given an index of the matrix returns the day
   public int getDay(int index) {
-    return (index % 10)/2;
+    return (index % 10) / 2;
   }
+
   // given an index of the matrix returns the Turn
   public int getTurn(int index) {
     return (index / 20) % 3;
   }
+
   // returns whether the given index is an index class or a pair class
   public boolean isIndexClass(int index) {
     return (index % 20) < 10;
   }
+
   // given 2 days returns the amount of days between them
   public int distanceBetweenDays(int day, int dayPair) {
     return Math.abs((day - dayPair)) - 1;
@@ -201,14 +220,15 @@ public class ScheduleDataHandler {
       amountOfStudents += getOrientationStudents().get(orientation);
     }
     int year = getCourseMapYear().get(course);
-    amountOfStudents = (int) (getAttendanceFactor().get(year) *
-        amountOfStudents * getTypeProportionInCourse(type, course));
+    amountOfStudents = (int) (getAttendanceFactor().get(year) * amountOfStudents
+        * getTypeProportionInCourse(type, course));
     // we must normalize for big attendance
     amountOfStudents = Math.min(amountOfStudents, 350);
     return amountOfStudents;
   }
 
-  // given a class with type returns all the possible cells of solution where the class would fit
+  // given a class with type returns all the possible cells of solution where the
+  // class would fit
   public HashMap<Integer, ArrayList<Integer>> getFeasibleClassroomsNoPair(int classWithType, IntegerSolution solution) {
     HashMap<Integer, ArrayList<Integer>> classroomSet = new HashMap<Integer, ArrayList<Integer>>();
     HashSet<ArrayList<Integer>> evaluatedOptions = new HashSet<ArrayList<Integer>>();
@@ -221,11 +241,11 @@ public class ScheduleDataHandler {
       if (capacityNeeded <= classroomCapacityNeeded) {
         for (int turn = 0; turn < 3; turn++) {
           for (int day = 0; day < 5; day++) {
-            int cell = 60*classroom + 20*turn + 2*day;
+            int cellIndex = 60 * classroom + 20 * turn + 2 * day;
             for (int i = 0; i < 2; i++) {
-              cell += i;
+              cellIndex += i;
               // if the cell is un use, we must find another one
-              if (solution.getVariableValue(cell) != -1) {
+              if (!isAvailable(cellIndex, solution)) {
                 continue;
               }
               ArrayList<Integer> classroomData = new ArrayList<Integer>();
@@ -245,8 +265,10 @@ public class ScheduleDataHandler {
     return classroomSet;
   }
 
-  // given a class with type returns all the possible cells of solution where the class would fit, and its pair
-  public HashMap<Integer, ArrayList<Integer>> getFeasibleClassroomsWithPair(int classWithType, IntegerSolution solution) {
+  // given a class with type returns all the possible cells of solution where the
+  // class would fit, and its pair
+  public HashMap<Integer, ArrayList<Integer>> getFeasibleClassroomsWithPair(int classWithType,
+      IntegerSolution solution) {
     HashMap<Integer, ArrayList<Integer>> classroomSet = new HashMap<Integer, ArrayList<Integer>>();
     HashSet<ArrayList<Integer>> evaluatedOptions = new HashSet<ArrayList<Integer>>();
     // we must first get the capacity needed
@@ -259,19 +281,19 @@ public class ScheduleDataHandler {
         // we have a classroom, we must find a slot in solution
         for (int turn = 0; turn < 3; turn++) {
           for (int day = 0; day < 5; day++) {
-            int cell = 60*classroom + 20*turn + 2*day;
+            int cellIndex = 60 * classroom + 20 * turn + 2 * day;
             for (int i = 0; i < 2; i++) {
-              cell += i;
+              cellIndex += i;
               // if the cell is un use, we must find another one
-              if (solution.getVariableValue(cell) != -1) {
+              if (!isAvailable(cellIndex, solution)) {
                 continue;
               }
               // now we must find a different day for the pair
-              HashSet<Integer> possibleDays = getCandidateDaysForPair(cell, solution);
+              HashSet<Integer> possibleDays = getCandidateDaysForPair(cellIndex, solution);
               for (Integer dayPair : possibleDays) {
-                int cellPair = 60*classroom + 20*turn + 2*dayPair;
+                int cellPairIndex = 60 * classroom + 20 * turn + 2 * dayPair;
                 for (int j = 0; j < 2; j++) {
-                  cellPair += j;
+                  cellPairIndex += j;
                   ArrayList<Integer> classroomData = new ArrayList<Integer>();
                   classroomData.add(classroom);
                   classroomData.add(turn);
@@ -279,7 +301,7 @@ public class ScheduleDataHandler {
                   classroomData.add(i);
                   classroomData.add(dayPair);
                   classroomData.add(j);
-                  if (!evaluatedOptions.contains(classroomData) && solution.getVariableValue(cellPair) == -1) {
+                  if (!evaluatedOptions.contains(classroomData) && isAvailable(cellPairIndex, solution)) {
                     evaluatedOptions.add(classroomData);
                     classroomSet.put(classroomSet.size(), classroomData);
                   }
@@ -292,20 +314,20 @@ public class ScheduleDataHandler {
     }
     return classroomSet;
   }
-  
+
   private HashSet<Integer> getVictims(boolean hasPair, int classWithType, IntegerSolution originalSolution) {
     HashSet<Integer> vicitimSet = new HashSet<Integer>();
     int capacityNeeded = getAttendingStudents(classWithType);
     for (int possibleVictim = 0; possibleVictim < getCellsInMatrix(); possibleVictim++) {
       int victimClassWithType = originalSolution.getVariableValue(possibleVictim);
-      if (!isIndexClass(possibleVictim) || victimClassWithType == -1) {
+      if (!isIndexClass(possibleVictim) || victimClassWithType == AVAILABLE_INDEX) {
         continue;
       }
       int classroomCapacity = getClassroomCapacity(getClassroom(possibleVictim));
       if (capacityNeeded <= classroomCapacity) {
-        HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = (hasPair ?
-            getFeasibleClassroomsWithPair(victimClassWithType, originalSolution) : 
-            getFeasibleClassroomsNoPair(victimClassWithType, originalSolution));
+        HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = (hasPair
+            ? getFeasibleClassroomsWithPair(victimClassWithType, originalSolution)
+            : getFeasibleClassroomsNoPair(victimClassWithType, originalSolution));
         if (newSlotsForVictim.isEmpty()) {
           continue;
         }
@@ -319,40 +341,44 @@ public class ScheduleDataHandler {
     return vicitimSet;
   }
 
-  private IntegerSolution moveVictimToFeasibleClassroom(boolean hasPair, int victim, IntegerSolution originalSolution) {
+  private IntegerSolution moveVictimToFeasibleClassroom(boolean hasPair, int victimIndex,
+      IntegerSolution originalSolution) {
     IntegerSolution solution = (IntegerSolution) originalSolution.copy();
-    int victimClassWithType = originalSolution.getVariableValue(victim);
+    int victimClassWithType = originalSolution.getVariableValue(victimIndex);
     if (hasPair) {
-      HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = getFeasibleClassroomsWithPair(victimClassWithType, originalSolution);
+      HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = getFeasibleClassroomsWithPair(victimClassWithType,
+          originalSolution);
       ArrayList<Integer> option = newSlotsForVictim.get(0);
-      int newPosition = 60*option.get(0) + 20*option.get(1) + 2*option.get(2) + option.get(3);
-      int victimValue = solution.getVariableValue(victim);
+      int newPosition = 60 * option.get(0) + 20 * option.get(1) + 2 * option.get(2) + option.get(3);
+      int victimValue = solution.getVariableValue(victimIndex);
       solution.setVariableValue(newPosition, victimValue);
       solution.setVariableValue(newPosition + 10, newPosition);
-      solution.setVariableValue(victim, -1);
-      solution.setVariableValue(victim + 10, -1);
+      solution.setVariableValue(victimIndex, AVAILABLE_INDEX);
+      solution.setVariableValue(victimIndex + 10, AVAILABLE_INDEX);
     } else {
-      HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = getFeasibleClassroomsNoPair(victimClassWithType, originalSolution);
+      HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = getFeasibleClassroomsNoPair(victimClassWithType,
+          originalSolution);
       ArrayList<Integer> option = newSlotsForVictim.get(0);
-      int newPosition = 60*option.get(0) + 20*option.get(1) + 2*option.get(2) + option.get(3);
-      int newPositionPair = 60*option.get(0) + 20*option.get(1) + 2*option.get(4) + option.get(5);
-      int victimValue = solution.getVariableValue(victim);
-      int victimPair = solution.getVariableValue(victim + 10);
+      int newPosition = 60 * option.get(0) + 20 * option.get(1) + 2 * option.get(2) + option.get(3);
+      int newPositionPair = 60 * option.get(0) + 20 * option.get(1) + 2 * option.get(4) + option.get(5);
+      int victimValue = solution.getVariableValue(victimIndex);
+      int victimPairIndex = solution.getVariableValue(victimIndex + 10);
       solution.setVariableValue(newPosition, victimValue);
       solution.setVariableValue(newPosition + 10, newPositionPair);
       solution.setVariableValue(newPositionPair, victimValue);
       solution.setVariableValue(newPositionPair + 10, newPosition);
-      solution.setVariableValue(victim, -1);
-      solution.setVariableValue(victim + 10, -1);
-      solution.setVariableValue(victimPair, -1);
-      solution.setVariableValue(victimPair + 10, -1);
+      solution.setVariableValue(victimIndex, AVAILABLE_INDEX);
+      solution.setVariableValue(victimIndex + 10, AVAILABLE_INDEX);
+      solution.setVariableValue(victimPairIndex, AVAILABLE_INDEX);
+      solution.setVariableValue(victimPairIndex + 10, AVAILABLE_INDEX);
     }
     return solution;
   }
 
   // CONFLICT RESOLUTION FUNCTIONS
 
-  // inserts a pair into the solution. Only chooses victims that are pairs themselves
+  // inserts a pair into the solution. Only chooses victims that are pairs
+  // themselves
   public IntegerSolution insertPairIntoSolution(int classWithType, IntegerSolution originalSolution) {
     IntegerSolution solution = (IntegerSolution) originalSolution.copy();
     HashSet<Integer> victimSet = getVictims(true, classWithType, originalSolution);
@@ -385,78 +411,30 @@ public class ScheduleDataHandler {
     return solution;
   }
 
-  public IntegerSolution findFeasibleClassroom(int cellIndex,
-                                               IntegerSolution solution) {
+  public int findFeasibleClassroom(int cellIndex, IntegerSolution solution) {
     int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
     return findFeasibleClassroom(attendingStudents, cellIndex, solution);
   }
 
-  public IntegerSolution findFeasibleClassroom(int attendingStudents,
-                                               int cellIndex,
-                                               IntegerSolution originalSolution) {
-    IntegerSolution solution = (IntegerSolution) originalSolution.copy(); // debug: cast may not be the way
+  public int findFeasibleClassroom(int attendingStudents, int cellIndex, IntegerSolution originalSolution) {
     int turn = getTurn(cellIndex);
     int day = getDay(cellIndex);
-    int startingCell = day*2 + turn*20;
-    boolean skipDay = true;
-    for (int cellCandidate = startingCell; cellCandidate < cellsInMatrix;
-         cellCandidate += (skipDay ? 59 : 1)) {
-      // check if candidate is available
-      if (solution.getVariableValue(cellCandidate) == -1) {
-        // get the capacity of the candidate
-        int classroom = getClassroom(cellCandidate);
-        int capacity = getClassroomCapacity(classroom);
-        if (attendingStudents <= capacity) {
-          // candidate is fit for insertion
-          int classOrigin = solution.getVariableValue(cellIndex);
-          int classPair = solution.getVariableValue(cellIndex + 10);
-          int cellCandidatePair = cellCandidate + 10;
-          // make the insertion
-          solution.setVariableValue(cellCandidate, classOrigin);
-          if (hasPair(cellIndex, originalSolution)) {
-            solution.setVariableValue(cellCandidatePair, classPair);
-          } else {
-            solution.setVariableValue(cellCandidatePair, cellCandidate);
-          }
-          solution.setVariableValue(cellIndex, 0);
-          solution.setVariableValue(cellIndex + 10, 0);
-          // pair should now point to the new value
-          if (hasPair(cellIndex, originalSolution)) {
-            solution.setVariableValue(classPair + 10, cellCandidate);
-          }
-          return solution;
-        }
-      }
-      skipDay = !skipDay;
-    }
-    // no empty classes were found, looking to swap
-    HashSet<Integer> victimSet = getVictimSetTurnDay(cellIndex, attendingStudents, solution);
-    if (victimSet.isEmpty()) {
-      // we cant swap, so we return null
-      return null;
-    } else {
-      // we chose a victim and return it
-      int victim = chooseVictim(victimSet, solution);
-      return swapFeasibleClassroom(victim, cellIndex, solution);
-    }
   }
-  
+
   // AUXILIARY FUNCTIONS FOR FINDING A FEASIBLE CLASSROOM
   public HashSet<Integer> getVictimSetTurnDay(int cellIndex, int attendingStudents, IntegerSolution originalSolution) {
     IntegerSolution solution = (IntegerSolution) originalSolution.copy();
     int turn = getTurn(cellIndex);
     int day = getDay(cellIndex);
     int classroom = getClassroom(cellIndex);
-    int startingCell = day*2 + turn*20;
+    int startingCell = day * 2 + turn * 20;
     HashSet<Integer> victimSet = new HashSet<Integer>();
     boolean skipDay = true;
-    for (int cellCandidate = startingCell; cellCandidate < cellsInMatrix;
-        cellCandidate += (skipDay ? 59 : 1)) {
+    for (int cellCandidate = startingCell; cellCandidate < cellsInMatrix; cellCandidate += (skipDay ? 59 : 1)) {
       // check if its not the same cell or if its empty
       // note that all empty indexes were discarded in parent function
-      if (getClassroom(cellCandidate) == classroom ||
-          solution.getVariableValue(cellCandidate) == -1 ||
-          cellCandidate == solution.getVariableValue(cellIndex + 10)) {
+      if (getClassroom(cellCandidate) == classroom || isAvailable(cellCandidate, solution)
+          || cellCandidate == solution.getVariableValue(cellIndex + 10)) {
         // we should continue
         skipDay = !skipDay;
         continue;
@@ -473,9 +451,10 @@ public class ScheduleDataHandler {
   }
 
   public int chooseVictim(HashSet<Integer> victimSet, IntegerSolution solution) {
-    // note that the possibleVictim set cant be empty, if it is then theres no classroom that
+    // note that the possibleVictim set cant be empty, if it is then theres no
+    // classroom that
     // can accommodate attending students which would result in a very bad thing
-    int victim = -1;
+    int victim = AVAILABLE_INDEX;
     int victimAttendance = Integer.MAX_VALUE;
     for (Integer possibleVictim : victimSet) {
       int victimClassWithType = solution.getVariableValue(possibleVictim);
@@ -490,9 +469,7 @@ public class ScheduleDataHandler {
 
   // function that swaps two classes if said swap is feasible
   // assumes victim is good to go
-  public IntegerSolution swapFeasibleClassroom(int victim,
-                                                int cellIndex,
-                                                IntegerSolution originalSolution) {
+  public IntegerSolution swapFeasibleClassroom(int victim, int cellIndex, IntegerSolution originalSolution) {
     IntegerSolution solution = (IntegerSolution) originalSolution.copy();
     int victimClassWithType = solution.getVariableValue(victim);
     int victimAttendance = getAttendingStudents(victimClassWithType);
@@ -538,13 +515,12 @@ public class ScheduleDataHandler {
     HashSet<Integer> candidateDays = getCandidateDaysForPair(cellIndex, solution);
     // we iterate through all the classroom slots for the same turn as the original
     for (Integer day : candidateDays) {
-      int candidateCell = 60*classroom + 20*turn + 2*day;
+      int candidateCell = 60 * classroom + 20 * turn + 2 * day;
       // we must iterate in both classes of the same turn
       for (int i = 0; i < 2; i++) {
-        candidateCell +=i;
+        candidateCell += i;
         // if its not the same as the original and its available
-        if (candidateCell != classroom &&
-            solution.getVariableValue(candidateCell) == -1) {
+        if (candidateCell != classroom && isAvailable(candidateCell, originalSolution)) {
           // we can perform the insertion
           int originalValue = solution.getVariableValue(cellIndex);
           int originalPair = solution.getVariableValue(cellIndex + 10);
@@ -585,8 +561,7 @@ public class ScheduleDataHandler {
 
   // creates a set of possible victims for swapping. Candidates have the same
   // turn and classroom as cellindex
-  public HashSet<Integer> getVictimSetTurnClassroom(int cellIndex,
-                                                    IntegerSolution solution) {
+  public HashSet<Integer> getVictimSetTurnClassroom(int cellIndex, IntegerSolution solution) {
     // initialize variables
     HashSet<Integer> victimSet = new HashSet<Integer>();
     HashSet<Integer> candidateDays = getCandidateDaysForPair(cellIndex, solution);
@@ -594,14 +569,12 @@ public class ScheduleDataHandler {
     int turn = getTurn(cellIndex);
     int possibleVictim = 0;
     for (Integer day : candidateDays) {
-      possibleVictim = 60*classroom + 20*turn + 2*day;
+      possibleVictim = 60 * classroom + 20 * turn + 2 * day;
       // we must check both classes of the same turn
       for (int i = 0; i < 2; i++) {
         possibleVictim += i;
         // we must find classes in the same classroom and turn to swap
-        if (possibleVictim == cellIndex || 
-            solution.getVariableValue(possibleVictim) == -1 ||
-            day == getDay(cellIndex)) {
+        if (possibleVictim == cellIndex || isAvailable(possibleVictim, solution) || day == getDay(cellIndex)) {
           continue;
         }
         // since classes are already assigned to this classroom we dont
