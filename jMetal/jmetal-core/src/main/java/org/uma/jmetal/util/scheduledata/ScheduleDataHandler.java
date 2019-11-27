@@ -306,6 +306,9 @@ public class ScheduleDataHandler {
                 int cellPairIndex = 60 * classroom + 20 * turn + 2 * dayPair;
                 for (int j = 0; j < 2; j++) {
                   cellPairIndex += j;
+                  if (!isAvailable(cellPairIndex, solution)) {
+                    continue;
+                  }
                   ArrayList<Integer> classroomData = new ArrayList<Integer>();
                   classroomData.add(classroom);
                   classroomData.add(turn);
@@ -313,7 +316,7 @@ public class ScheduleDataHandler {
                   classroomData.add(i);
                   classroomData.add(dayPair);
                   classroomData.add(j);
-                  if (!evaluatedOptions.contains(classroomData) && isAvailable(cellPairIndex, solution)) {
+                  if (!evaluatedOptions.contains(classroomData)) {
                     evaluatedOptions.add(classroomData);
                     classroomSet.put(classroomSet.size(), classroomData);
                   }
@@ -332,11 +335,15 @@ public class ScheduleDataHandler {
     int capacityNeeded = getAttendingStudents(classWithType);
     for (int possibleVictim = 0; possibleVictim < getCellsInMatrix(); possibleVictim++) {
       int victimClassWithType = originalSolution.getVariableValue(possibleVictim);
-      if (!isIndexClass(possibleVictim) || victimClassWithType == AVAILABLE_INDEX) {
+      if (!isIndexClass(possibleVictim) || isAvailable(possibleVictim, originalSolution)) {
         continue;
       }
       int classroomCapacity = getClassroomCapacity(getClassroom(possibleVictim));
       if (capacityNeeded <= classroomCapacity) {
+        boolean possibleVictimHasPair = hasPair(possibleVictim, originalSolution);
+        if (possibleVictimHasPair != hasPair) {
+          continue;
+        }
         HashMap<Integer, ArrayList<Integer>> newSlotsForVictim = (hasPair
             ? getFeasibleClassroomsWithPair(victimClassWithType, originalSolution)
             : getFeasibleClassroomsNoPair(victimClassWithType, originalSolution));
@@ -445,10 +452,11 @@ public class ScheduleDataHandler {
     return solution;
   }
 
-  public int findFeasibleClassroom(int cellIndex, IntegerSolution solution) {
-    int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
-    return findFeasibleClassroom(attendingStudents, cellIndex, solution);
-  }
+  // public int findFeasibleClassroom(int cellIndex, IntegerSolution solution) {
+  // int attendingStudents =
+  // getAttendingStudents(solution.getVariableValue(cellIndex));
+  // return findFeasibleClassroom(attendingStudents, cellIndex, solution);
+  // }
 
   public int findFeasibleClassroom(int attendingStudents, int cellIndex, IntegerSolution solution) {
     int res;
