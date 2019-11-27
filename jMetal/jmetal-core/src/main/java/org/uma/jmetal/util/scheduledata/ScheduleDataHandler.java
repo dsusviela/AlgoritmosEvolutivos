@@ -29,16 +29,20 @@ public class ScheduleDataHandler {
   private HashMap<String, Integer> classroomCapacity;
   // given the number id of a classroom returns the string id
   private HashMap<Integer, String> classroomNameMap;
+  // classrooms ordered by capacity (less to great)
+  private ArrayList<int[]> sortedClassrooms;
+  private int classroomsQty;
   // given a class returns the number of students
   private HashMap<Integer, Integer> classStudents;
   // given an orientation returns the number of students
   private HashMap<Integer, Integer> orientationStudents;
   // given a year returns the factor of student decay for said year
-  // please note that course 44 in deault data has a special factor
-  private HashMap<Integer, Float> attendanceFactor;
+  // please note that course 44 in default data has a special factor
+  private HashMap<Integer, Float> rateOfYearlyDecay;
   // given a course returns the year it corresponds to.
-  // please note that course 44 in deault data has a special year
+  // please note that course 44 in default data has a special year
   private HashMap<Integer, Integer> courseMapYear;
+  private static final float ATTENDANCE_FACTOR = 0.8f;
 
   public ScheduleDataHandler() {
     generateInstance();
@@ -133,12 +137,12 @@ public class ScheduleDataHandler {
     this.orientationStudents = orientationStudents;
   }
 
-  public HashMap<Integer, Float> getAttendanceFactor() {
-    return attendanceFactor;
+  public HashMap<Integer, Float> getRateOfYearlyDecay() {
+    return rateOfYearlyDecay;
   }
 
-  public void setAttendanceFactor(HashMap<Integer, Float> attendanceFactor) {
-    this.attendanceFactor = attendanceFactor;
+  public void setRateOfYearlyDecay(HashMap<Integer, Float> rateOfYearlyDecay) {
+    this.rateOfYearlyDecay = rateOfYearlyDecay;
   }
 
   public HashMap<Integer, Integer> getCourseMapYear() {
@@ -206,6 +210,14 @@ public class ScheduleDataHandler {
     return (index % 20) < 10;
   }
 
+  public int getNeighbourIndex(int cellIndex) {
+    if (cellIndex % 2 == 0) {
+      return cellIndex + 1;
+    } else {
+      return cellIndex - 1;
+    }
+  }
+
   // given 2 days returns the amount of days between them
   public int distanceBetweenDays(int day, int dayPair) {
     return Math.abs((day - dayPair)) - 1;
@@ -220,8 +232,8 @@ public class ScheduleDataHandler {
       amountOfStudents += getOrientationStudents().get(orientation);
     }
     int year = getCourseMapYear().get(course);
-    amountOfStudents = (int) (getAttendanceFactor().get(year) * amountOfStudents
-        * getTypeProportionInCourse(type, course));
+    amountOfStudents = (int) (getRateOfYearlyDecay().get(year) * amountOfStudents
+        * getTypeProportionInCourse(type, course) * ATTENDANCE_FACTOR);
     // we must normalize for big attendance
     amountOfStudents = Math.min(amountOfStudents, 350);
     return amountOfStudents;
@@ -438,9 +450,53 @@ public class ScheduleDataHandler {
     return findFeasibleClassroom(attendingStudents, cellIndex, solution);
   }
 
-  public int findFeasibleClassroom(int attendingStudents, int cellIndex, IntegerSolution originalSolution) {
-    int turn = getTurn(cellIndex);
-    int day = getDay(cellIndex);
+  public int findFeasibleClassroom(int attendingStudents, int cellIndex, IntegerSolution solution) {
+    int res;
+    int firstClassroomIndex = firstFeasibleClassroom(attendingStudents, 0, classroomsQty - 1);
+    for (int classroomIndex = firstClassroomIndex; classroomIndex < classroomsQty; classroomIndex++) {
+      for (int cell = 0; cell < 2; cell++) {
+        res = 60 * sortedClassrooms.get(classroomIndex)[0] + 20 * getTurn(cellIndex) + 2 * getDay(cellIndex) + cell;
+        if (isAvailable(res, solution)) {
+          return res;
+        }
+      }
+    }
+    return -1;
+  }
+
+  public int findFeasibleDay(int cellIndex, IntegerSolution solution) {
+    int res;
+    HashSet<Integer> days = getCandidateDaysForPair(cellIndex, solution);
+    for (Integer day : days) {
+      for (int cell = 0; cell < 2; cell++) {
+        res = 60 * getClassroom(cellIndex) + 20 * getTurn(cellIndex) + 2 * day + cell;
+        if (isAvailable(res, solution)) {
+          return res;
+        }
+      }
+    }
+    return -1;
+  }
+
+  public int findFeasibleClassroomAndDay(int cellIndex, IntegerSolution solution) {
+    int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
+    return findFeasibleClassroomAndDay(attendingStudents, cellIndex, solution);
+  }
+
+  public int findFeasibleClassroomAndDay(int attendingStudents, int cellIndex, IntegerSolution solution) {
+    int res;
+    int firstClassroomIndex = firstFeasibleClassroom(attendingStudents, 0, classroomsQty - 1);
+    for (int classroomIndex = firstClassroomIndex; classroomIndex < classroomsQty; classroomIndex++) {
+      for (int day = 0; day < 5; day++) {
+        for (int cell = 0; cell < 2; cell++) {
+          res = 60 * sortedClassrooms.get(classroomIndex)[0] + 20 * getTurn(cellIndex) + 2 * day + cell;
+          if (isAvailable(res, solution)) {
+            return res;
+          }
+        }
+      }
+    }
+    return -1;
   }
 
   // AUXILIARY FUNCTIONS FOR FINDING A FEASIBLE CLASSROOM
@@ -528,47 +584,6 @@ public class ScheduleDataHandler {
     }
   }
 
-  public IntegerSolution findFeasibleDay(int cellIndex, IntegerSolution originalSolution) {
-    IntegerSolution solution = (IntegerSolution) originalSolution.copy();
-    // note that the classroom already fits the amount of students
-    // we need to find another day for this class in the same room at the same turn
-    int turn = getTurn(cellIndex);
-    int classroom = getClassroom(cellIndex);
-    HashSet<Integer> candidateDays = getCandidateDaysForPair(cellIndex, solution);
-    // we iterate through all the classroom slots for the same turn as the original
-    for (Integer day : candidateDays) {
-      int candidateCell = 60 * classroom + 20 * turn + 2 * day;
-      // we must iterate in both classes of the same turn
-      for (int i = 0; i < 2; i++) {
-        candidateCell += i;
-        // if its not the same as the original and its available
-        if (candidateCell != classroom && isAvailable(candidateCell, originalSolution)) {
-          // we can perform the insertion
-          int originalValue = solution.getVariableValue(cellIndex);
-          int originalPair = solution.getVariableValue(cellIndex + 10);
-          solution.setVariableValue(candidateCell, originalValue);
-          solution.setVariableValue(candidateCell + 10, originalPair);
-          // now we must make the pair point at the new cell
-          // note that the pair always exists, else we wouldnt need for the function call
-          solution.setVariableValue(originalPair + 10, candidateCell);
-          // we must now clean the original spot
-          solution.setVariableValue(cellIndex, 0);
-          solution.setVariableValue(cellIndex + 10, 0);
-          return solution;
-        }
-      }
-    }
-    // we didnt find a slot, we must perform a swap
-    HashSet<Integer> victimSet = getVictimSetTurnClassroom(cellIndex, solution);
-    if (victimSet.isEmpty()) {
-      return null;
-    } else {
-      // we must perform the swap
-      int victim = chooseVictim(victimSet, solution);
-      return swapFeasibleClassroom(victim, cellIndex, originalSolution);
-    }
-  }
-
   // returns the possible day locations for a potential pair of cellindex
   public HashSet<Integer> getCandidateDaysForPair(int cellIndex, IntegerSolution solution) {
     HashSet<Integer> result = new HashSet<Integer>();
@@ -605,6 +620,41 @@ public class ScheduleDataHandler {
       }
     }
     return victimSet;
+  }
+
+  public int firstFeasibleClassroom(int attendingStudents, int first, int last) {
+    if (first == last) {
+      return first;
+    } else if (last - first == 1) {
+      if (first > attendingStudents) {
+        return first;
+      } else {
+        return last;
+      }
+    } else {
+      int middle = (first + last) / 2;
+      if (attendingStudents >= sortedClassrooms.get(middle)[1]) {
+        first = middle;
+      } else {
+        last = middle;
+      }
+      return firstFeasibleClassroom(attendingStudents, first, last);
+    }
+  }
+
+  public void bubbleSortClassrooms(ArrayList<int[]> list) {
+    int n = list.size();
+    int[] temp;
+    for (int i = 0; i < n; i++) {
+      for (int j = 1; j < (n - i); j++) {
+        if (list.get(j - 1)[1] > list.get(j)[1]) {
+          // swap elements
+          temp = list.get(j - 1);
+          list.set(j - 1, list.get(j));
+          list.set(j, temp);
+        }
+      }
+    }
   }
 
   // default instance
@@ -714,6 +764,16 @@ public class ScheduleDataHandler {
     classroomNameMap.put(45, "401");
     classroomNameMap.put(46, "402");
     classroomNameMap.put(47, "SW");
+
+    classroomsQty = classroomNameMap.size();
+
+    sortedClassrooms = new ArrayList<int[]>();
+    for (int classroom = 0; classroom < classroomNameMap.size(); classroom++) {
+      int[] pair = { classroom, classroomCapacity.get(classroomNameMap.get(classroom)) };
+      sortedClassrooms.add(classroom, pair);
+    }
+
+    bubbleSortClassrooms(sortedClassrooms);
 
     courseMapOrientation = new HashMap<Integer, HashSet<Integer>>();
     HashSet<Integer> orientationSet = new HashSet<>();
@@ -1239,13 +1299,13 @@ public class ScheduleDataHandler {
     orientationStudents.put(12, 91);
 
     // factor of total students that take courses of the "key" year
-    attendanceFactor = new HashMap<Integer, Float>();
-    attendanceFactor.put(1, 0.882f);
-    attendanceFactor.put(2, 0.475f);
-    attendanceFactor.put(3, 0.307f);
+    rateOfYearlyDecay = new HashMap<Integer, Float>();
+    rateOfYearlyDecay.put(1, 0.882f);
+    rateOfYearlyDecay.put(2, 0.475f);
+    rateOfYearlyDecay.put(3, 0.307f);
     // special case for course 44, it can be coursed either in
     // the second year and in the third. Attendance factors are averaged
-    attendanceFactor.put(0, (attendanceFactor.get(2) + attendanceFactor.get(3)) / 2);
+    rateOfYearlyDecay.put(0, (rateOfYearlyDecay.get(2) + rateOfYearlyDecay.get(3)) / 2);
 
     // maps a course to the year its dictated
     courseMapYear = new HashMap<Integer, Integer>();
@@ -1271,7 +1331,7 @@ public class ScheduleDataHandler {
         }
       }
       int year = courseMapYear.get(course);
-      students = (int) (students * attendanceFactor.get(year));
+      students = (int) (students * rateOfYearlyDecay.get(year));
       classStudents.put(course, students);
     }
   }

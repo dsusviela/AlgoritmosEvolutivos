@@ -9,6 +9,8 @@ import org.uma.jmetal.util.pseudorandom.RandomGenerator;
 import org.uma.jmetal.util.scheduledata.ScheduleDataHandler;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -69,9 +71,9 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
       int crossoverType = (int) Math.floor(Math.random() * 3);
 
       if (crossoverType == 0) {
-        return turnCrossover(parent1, parent2);
-      } else if (crossoverType == 1) {
         return dayCrossover(parent1, parent2);
+      } else if (crossoverType == 1) {
+        return turnCrossover(parent1, parent2);
       } else {
         return classroomCrossover(parent1, parent2);
       }
@@ -81,6 +83,92 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
       offspring.add((IntegerSolution) parent2.copy());
       return offspring;
     }
+  }
+
+  private List<IntegerSolution> dayCrossover(IntegerSolution parent1, IntegerSolution parent2) {
+    Random random = new Random();
+    int day = random.nextInt(5);
+    List<IntegerSolution> offspring = new ArrayList<IntegerSolution>(2);
+    offspring.add(doDayCrossover(parent1, parent2, day));
+    offspring.add(doDayCrossover(parent2, parent1, day));
+    return offspring;
+  }
+
+  private IntegerSolution doDayCrossover(IntegerSolution father, IntegerSolution mother, int day) {
+    IntegerSolution child = (IntegerSolution) mother.copy();
+
+    // register classes to delete from mother
+    HashMap<Integer, Integer> classBalance = new HashMap<Integer, Integer>();
+    for (int turn = 0; turn < 3; turn++) {
+      for (int classroom = 0; classroom < data.getClassroomCapacity().keySet().size(); classroom++) {
+        for (int cell = 0; cell < 2; cell++) {
+          int cellIndex = classroom * 60 + turn * 20 + day * 2 + cell;
+          if (!data.isAvailable(cellIndex, mother)) {
+            // we register the loss in the child
+            int amount = (classBalance.containsKey(mother.getVariableValue(cellIndex))
+                ? classBalance.get(mother.getVariableValue(cellIndex))
+                : 0);
+            amount--;
+            classBalance.put(mother.getVariableValue(cellIndex), amount);
+            // delete step is done here
+            child.setVariableValue(cellIndex, ScheduleDataHandler.AVAILABLE_INDEX);
+            child.setVariableValue(cellIndex + 10, ScheduleDataHandler.AVAILABLE_INDEX);
+            if (data.hasPair(cellIndex, mother)) {
+              child.setVariableValue(mother.getVariableValue(cellIndex + 10), ScheduleDataHandler.AVAILABLE_INDEX);
+              child.setVariableValue(mother.getVariableValue(cellIndex + 10) + 10, ScheduleDataHandler.AVAILABLE_INDEX);
+            }
+            // register what we're about to insert
+            amount = (classBalance.containsKey(father.getVariableValue(cellIndex))
+                ? classBalance.get(father.getVariableValue(cellIndex))
+                : 0);
+            amount++;
+            classBalance.put(father.getVariableValue(cellIndex), amount);
+          }
+        }
+      }
+    }
+
+    // first three steps are done for the child
+    // we now neeed to delete the excess
+    for (int cellIndex = 0; cellIndex < data.getCellsInMatrix(); cellIndex++) {
+      if (!data.isIndexClass(cellIndex) || data.isAvailable(cellIndex, child)) {
+        continue;
+      }
+      int classWithType = child.getVariableValue(cellIndex);
+      if (classBalance.keySet().contains(classWithType) && 0 < classBalance.get(classWithType)) {
+        child.setVariableValue(cellIndex, ScheduleDataHandler.AVAILABLE_INDEX);
+        child.setVariableValue(cellIndex + 10, ScheduleDataHandler.AVAILABLE_INDEX);
+        if (data.hasPair(cellIndex, mother)) {
+          child.setVariableValue(mother.getVariableValue(cellIndex + 10), ScheduleDataHandler.AVAILABLE_INDEX);
+          child.setVariableValue(mother.getVariableValue(cellIndex + 10) + 10, ScheduleDataHandler.AVAILABLE_INDEX);
+        }
+        int amount = classBalance.get(classWithType) - 1;
+        classBalance.put(classWithType, amount);
+      }
+    }
+
+    // we need to insert now
+    for (int classroom = 0; classroom < data.getClassroomCapacity().keySet().size(); classroom++) {
+      for (int turn = 0; turn < 3; turn++) {
+        for (int cell = 0; cell < 2; cell++) {
+          int cellIndex = 60 * classroom + 20 * turn + 2 * day + cell;
+          child.setVariableValue(cellIndex, father.getVariableValue(cellIndex));
+          child.setVariableValue(cellIndex + 10, father.getVariableValue(cellIndex + 10));
+          solveCollision(father.getVariableValue(cellIndex + 10), child, father);
+        }
+      }
+    }
+
+    // if the balance is negative, add the missing classes
+    for (int classWithType = 0; classWithType < data.getAmountCourses() * 4; classWithType++) {
+      if (classBalance.containsKey(classWithType)) {
+        while (classBalance.get(classWithType) < 0) {
+          data.insertClassIntoSolution(classWithType, child);
+        }
+      }
+    }
+
+    return child;
   }
 
   private List<IntegerSolution> turnCrossover(IntegerSolution parent1, IntegerSolution parent2) {
@@ -124,94 +212,6 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
       oldCellPairIndex = child2.getVariableValue(cellIndex + 10);
       // If the pair was not already swapped
       if (!(oldCellPairIndex >= start && oldCellPairIndex < start + 10)) {
-        child2 = solveCollision(oldCellPairIndex, child2, parent2, parent1);
-      }
-    }
-
-    List<IntegerSolution> offspring = new ArrayList<IntegerSolution>(2);
-    offspring.add(child1);
-    offspring.add(child2);
-    return offspring;
-  }
-
-  private List<IntegerSolution> dayCrossover(IntegerSolution parent1, IntegerSolution parent2) {
-    IntegerSolution child1 = (IntegerSolution) parent1.copy();
-    IntegerSolution child2 = (IntegerSolution) parent2.copy();
-    int oldCellValue, oldCellPairIndex;
-
-    // gets a random day
-    Random rand = new Random();
-    // starts at the beginning of a random day
-    int start = (int) Math.floor(rand.nextInt(5));
-
-    // Cells exchange
-    for (int cellIndex = start * 2; cellIndex < child1.getNumberOfVariables(); cellIndex += 20) {
-      // First cell of day
-
-      // Swap the cells and the pair references
-      // Parent 1 -> Child 2
-      oldCellValue = parent1.getVariableValue(cellIndex);
-      oldCellPairIndex = parent1.getVariableValue(cellIndex + 10);
-      child2.setVariableValue(cellIndex, oldCellValue);
-      // The reference to the pair is subject to change
-      child2.setVariableValue(cellIndex + 10, oldCellPairIndex);
-
-      // Parent 2 -> Child 1
-      oldCellValue = parent2.getVariableValue(cellIndex);
-      oldCellPairIndex = parent2.getVariableValue(cellIndex + 10);
-      child1.setVariableValue(cellIndex, oldCellValue);
-      // The reference to the pair is subject to change
-      child1.setVariableValue(cellIndex + 10, oldCellPairIndex);
-
-      // Second cell of day
-
-      // Swap the cells and the pair references
-      // Parent 1 -> Child 2
-      oldCellValue = parent1.getVariableValue(cellIndex + 1);
-      oldCellPairIndex = parent1.getVariableValue(cellIndex + 11);
-      child2.setVariableValue(cellIndex + 1, oldCellValue);
-      // The reference to the pair is subject to change
-      child2.setVariableValue(cellIndex + 11, oldCellPairIndex);
-
-      // Parent 2 -> Child 1
-      oldCellValue = parent2.getVariableValue(cellIndex + 1);
-      oldCellPairIndex = parent2.getVariableValue(cellIndex + 11);
-      child1.setVariableValue(cellIndex + 1, oldCellValue);
-      // The reference to the pair is subject to change
-      child1.setVariableValue(cellIndex + 11, oldCellPairIndex);
-    }
-
-    // Pairs exchange
-    for (int cellIndex = start * 2; cellIndex < child1.getNumberOfVariables(); cellIndex += 20) {
-      // First cell of day
-
-      // Child 1
-      oldCellPairIndex = child1.getVariableValue(cellIndex + 10);
-      // If the pair was not already swapped
-      if (data.getDay(oldCellPairIndex) != data.getDay(cellIndex)) {
-        child1 = solveCollision(oldCellPairIndex, child1, parent1, parent2);
-      }
-
-      // Child 2
-      oldCellPairIndex = child2.getVariableValue(cellIndex + 10);
-      // If the pair was not already swapped
-      if (data.getDay(oldCellPairIndex) != data.getDay(cellIndex)) {
-        child2 = solveCollision(oldCellPairIndex, child2, parent2, parent1);
-      }
-
-      // Second cell of day
-
-      // Child 1
-      oldCellPairIndex = child1.getVariableValue(cellIndex + 11);
-      // If the pair was not already swapped
-      if (data.getDay(oldCellPairIndex) != data.getDay(cellIndex)) {
-        child1 = solveCollision(oldCellPairIndex, child1, parent1, parent2);
-      }
-
-      // Child 2
-      oldCellPairIndex = child2.getVariableValue(cellIndex + 11);
-      // If the pair was not already swapped
-      if (data.getDay(oldCellPairIndex) != data.getDay(cellIndex)) {
         child2 = solveCollision(oldCellPairIndex, child2, parent2, parent1);
       }
     }
@@ -277,37 +277,27 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
     return offspring;
   }
 
-  IntegerSolution solveCollision(int cellIndex, IntegerSolution child, IntegerSolution originalParent,
-      IntegerSolution otherParent) {
-    IntegerSolution altSolution = (IntegerSolution) child.copy();
+  boolean solveCollision(int cellIndex, IntegerSolution child, IntegerSolution father) {
+    int cellDestination = cellIndex;
 
-    if (child.getVariableValue(cellIndex) == -1) {
-      child.setVariableValue(cellIndex, otherParent.getVariableValue(cellIndex));
-    } else {
-      // The current value of the conflicting cell is saved in the parent, so
-      // just override the current value with the pair value
-      child.setVariableValue(cellIndex, otherParent.getVariableValue(cellIndex));
-      altSolution = data.findFeasibleClassroom(cellIndex, child);
-      if (altSolution == null) {
-        altSolution = data.findFeasibleDay(cellIndex, child);
-        if (altSolution == null) {
-          //child = data.findFeasibleDayAndClassroom(cellIndex, child);
-          // findFeasibleDayAndClassroom leaves the parameter cell empty, so now I can put
-          // the original value again there
-          child.setVariableValue(cellIndex, originalParent.getVariableValue(cellIndex));
-        } else {
-          child = altSolution;
-          // findFeasibleDay leaves the parameter cell empty, so now I can put the
-          // original value again there
-          child.setVariableValue(cellIndex, originalParent.getVariableValue(cellIndex));
+    if (!data.isAvailable(cellIndex, child) && !data.isAvailable(data.getNeighbourIndex(cellIndex), child)) {
+      cellDestination = data.findFeasibleClassroom(cellIndex, child);
+      if (cellDestination == -1) {
+        cellDestination = data.findFeasibleDay(cellIndex, child);
+        if (cellDestination == -1) {
+          cellDestination = data.findFeasibleClassroomAndDay(cellIndex, child);
+          if (cellDestination == -1) {
+            // Harakiri
+            return false;
+          }
         }
-      } else {
-        child = altSolution;
-        // findFeasibleClassroom leaves the parameter cell empty, so now I can put the
-        // original value again there
-        child.setVariableValue(cellIndex, originalParent.getVariableValue(cellIndex));
       }
     }
-    return altSolution;
+
+    child.setVariableValue(cellDestination, father.getVariableValue(cellIndex));
+    child.setVariableValue(cellDestination + 10, father.getVariableValue(cellIndex + 10));
+    child.setVariableValue(father.getVariableValue(cellIndex + 10) + 10, cellDestination);
+
+    return true;
   }
 }

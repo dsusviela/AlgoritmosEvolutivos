@@ -2,6 +2,7 @@ package org.uma.jmetal.operator.impl.mutation;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 
 import org.uma.jmetal.operator.MutationOperator;
@@ -94,7 +95,9 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
     private void doMutation(double probability, IntegerSolution solution) {
         evaluated = new boolean[solution.getNumberOfVariables()];
         LinkedList<Integer> victims = new LinkedList<Integer>();
-        int victimIndex, oldCellValue, oldCellPairIndex;
+        int victimIndex;
+        boolean cellHadPair, victimHadPair;
+        IntegerSolution originalSolution = (IntegerSolution) solution.copy();
 
         // For each cell
         for (int cellIndex = 0; cellIndex < solution.getNumberOfVariables(); cellIndex++) {
@@ -120,26 +123,41 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
                     else {
                         victims = classroomMutation(solution, cellIndex);
                     }
-                    Collections.shuffle(victims);
-                    victimIndex = victims.getFirst();
+                    LinkedList<Integer> feasibleVictims = new LinkedList<Integer>();
+                    int attendingStudents = data.getAttendingStudents(solution.getVariableValue(cellIndex));
+                    int indexCapacity = data.getClassroomCapacity(data.getClassroom(cellIndex));
+                    for (Integer victim : victims) {
+                        int vicitimCapacity = data.getClassroomCapacity(data.getClassroom(cellIndex));
+                        int victimAttendingStudents = data.getAttendingStudents(solution.getVariableValue(victim));
+                        if (attendingStudents < vicitimCapacity && victimAttendingStudents < indexCapacity) {
+                            feasibleVictims.add(victim);
+                        }
+                    }
+                    if (feasibleVictims.isEmpty()) {
+                        break;
+                    }
+                    Collections.shuffle(feasibleVictims);
+                    victimIndex = feasibleVictims.getFirst();
+                    int victim = feasibleVictims.get(victimIndex);
+                    cellHadPair = data.hasPair(cellIndex, solution);
+                    victimHadPair = data.hasPair(victimIndex, solution);
 
                     // Swap the cells and the pair references
-                    oldCellValue = solution.getVariableValue(cellIndex);
-                    oldCellPairIndex = solution.getVariableValue(cellIndex + 10);
-                    solution.setVariableValue(cellIndex, solution.getVariableValue(victimIndex));
-                    solution.setVariableValue(cellIndex + 10, solution.getVariableValue(victimIndex + 10));
-                    solution.setVariableValue(oldCellPairIndex + 10, victimIndex);
-                    solution.setVariableValue(victimIndex, oldCellValue);
-                    solution.setVariableValue(victimIndex + 10, oldCellPairIndex);
-                    solution.setVariableValue(solution.getVariableValue(victimIndex + 10), cellIndex);
+                    data.swapFeasibleClassroom(victim, cellIndex, solution);
 
                     // Only in turn mutation, the pairs are exchanged too
                     if (mutationType == 1) {
-                        if (data.hasPair(cellIndex, solution)) {
-                            solution = solveCollision(cellIndex, victimIndex - cellIndex, solution);
+                        if (cellHadPair) {
+                            if (!solveCollision(solution.getVariableValue(victimIndex + 10), solution)) {
+                                // abort
+                                solution = originalSolution;
+                            }
                         }
-                        if (data.hasPair(victimIndex, solution)) {
-                            solution = solveCollision(victimIndex, cellIndex - victimIndex, solution);
+                        if (victimHadPair) {
+                            if (!solveCollision(solution.getVariableValue(cellIndex + 10), solution)) {
+                                // abort
+                                solution = originalSolution;
+                            }
                         }
                     }
                 }
@@ -157,7 +175,8 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
         for (int k = 0; k < 10; k++) {
             victimIndex = startCellIndex + k;
             isSelectable = victimIndex != cellIndex && !evaluated[victimIndex]
-                    && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex);
+                    && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex)
+                    && data.isAvailable(victimIndex, solution) && data.getDay(cellIndex) != (k / 2);
             // The cell in the same block that the victim can't be my pair
             if (victimIndex % 2 == 0) {
                 isSelectable &= solution.getVariableValue(victimIndex - 1) != solution.getVariableValue(cellIndex);
@@ -193,7 +212,8 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
         for (int k = 0; k < 3; k++) {
             victimIndex = startCellIndex + 20 * k;
             isSelectable = victimIndex != cellIndex && !evaluated[victimIndex]
-                    && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex);
+                    && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex)
+                    && data.isAvailable(victimIndex, solution);
             // The cell in the same block that the victim can't be my pair
             if (victimIndex % 2 == 0) {
                 isSelectable &= solution.getVariableValue(victimIndex - 1) != solution.getVariableValue(cellIndex);
@@ -248,7 +268,8 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
         for (int k = 0; k < (int) Math.floor(solution.getNumberOfVariables() / 60); k++) {
             victimIndex = startCellIndex + 60 * k;
             isSelectable = victimIndex != cellIndex && !evaluated[victimIndex]
-                    && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex);
+                    && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex)
+                    && data.isAvailable(victimIndex, solution);
             if (victimIndex % 2 == 0) {
                 isSelectable &= solution.getVariableValue(victimIndex - 1) != solution.getVariableValue(cellIndex);
             } else {
@@ -273,43 +294,33 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
         return res;
     }
 
-    private IntegerSolution solveCollision(int cellIndex, int distance, IntegerSolution solution) {
-        IntegerSolution altSolution = (IntegerSolution) solution.copy();
-        int cellPairIndex = solution.getVariableValue(cellIndex + 10);
-        int cellPairValue = solution.getVariableValue(cellPairIndex);
+    private boolean solveCollision(int cellIndex, IntegerSolution solution) {
+        if (data.getAttendingStudents(solution.getVariableValue(cellIndex)) < data
+                .getClassroomCapacity(data.getClassroom(cellIndex))) {
+            return true;
+        }
 
-        // Solve collisions with the cell's pair
-        if (data.isAvailable(cellPairIndex + distance, solution)) {
-            // Swap the cells and the pair references, and the reference to me of my pair
-            altSolution.setVariableValue(cellPairIndex + distance, cellPairValue);
-            altSolution.setVariableValue(cellPairIndex + distance + 10, solution.getVariableValue(cellPairIndex + 10));
-            altSolution.setVariableValue(cellIndex + 10, cellPairIndex + distance);
-            altSolution.setVariableValue(cellPairIndex, 0);
-            altSolution.setVariableValue(cellPairIndex + 10, 0);
-        } else {
-            // Save the current value in the conflicting cell
-            int aux = solution.getVariableValue(cellPairIndex + distance);
-            // Just override the current value with the pair value
-            altSolution.setVariableValue(cellPairIndex + distance, cellPairValue);
-            altSolution = data.findFeasibleClassroom(cellPairIndex, altSolution);
-            if (altSolution == null) {
-                altSolution = data.findFeasibleDay(cellPairIndex, altSolution);
-                if (altSolution == null) {
-                    //altSolution = data.findFeasibleDayAndClassroom(cellPairIndex, altSolution);
-                    // findFeasibleDayAndClassroom leaves the parameter cell empty, so now I can put
-                    // the original value again there
-                    altSolution.setVariableValue(cellPairIndex + distance, aux);
-                } else {
-                    // findFeasibleDay leaves the parameter cell empty, so now I can put the
-                    // original value again there
-                    altSolution.setVariableValue(cellPairIndex + distance, aux);
+        int cellDestination = data.findFeasibleClassroom(cellIndex, solution);
+        if (cellDestination == -1) {
+            cellDestination = data.findFeasibleDay(cellIndex, solution);
+            if (cellDestination == -1) {
+                cellDestination = data.findFeasibleClassroomAndDay(cellIndex, solution);
+                if (cellDestination == -1) {
+                    // Harakiri
+                    return false;
                 }
-            } else {
-                // findFeasibleClassroom leaves the parameter cell empty, so now I can put the
-                // original value again there
-                altSolution.setVariableValue(cellPairIndex + distance, aux);
             }
         }
-        return altSolution;
+
+        int cellPairIndex = solution.getVariableValue(cellIndex + 10);
+
+        // Swap the cells and the pair references, and the reference to me of my pair
+        solution.setVariableValue(cellDestination, solution.getVariableValue(cellIndex));
+        solution.setVariableValue(cellDestination + 10, cellPairIndex);
+        solution.setVariableValue(cellIndex, ScheduleDataHandler.AVAILABLE_INDEX);
+        solution.setVariableValue(cellIndex + 10, ScheduleDataHandler.AVAILABLE_INDEX);
+        solution.setVariableValue(cellPairIndex + 10, cellDestination);
+
+        return true;
     }
 }

@@ -126,13 +126,13 @@ public class Schedule extends AbstractIntegerProblem {
     }
     // populating heatmap
     for (int courseIndex = 0; courseIndex < cellsInMatrix; courseIndex++) {
-      if (!handler.isIndexClass(courseIndex)) {
+      if (!handler.isIndexClass(courseIndex) || handler.isAvailable(courseIndex, matrix)) {
         continue;
       }
-      Integer course = new Integer(matrix.getVariableValue(courseIndex) / 10);
-      Integer turn = handler.getTurn(courseIndex);
+      int course = handler.getClassCourse(matrix.getVariableValue(courseIndex));
+      int turn = handler.getTurn(courseIndex);
       HashMap<Integer, Integer> turnCourseMap = courseHeatmap.get(course);
-      Integer coursesInTurn = turnCourseMap.get(turn);
+      int coursesInTurn = turnCourseMap.get(turn);
       turnCourseMap.put(turn, coursesInTurn++);
       courseHeatmap.put(course, turnCourseMap);
     }
