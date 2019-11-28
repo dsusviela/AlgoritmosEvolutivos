@@ -29,7 +29,6 @@ public class Schedule extends AbstractIntegerProblem {
     }
     setLowerLimit(lowerLimit);
     setUpperLimit(upperLimit);
-
   }
 
   @Override
@@ -73,43 +72,33 @@ public class Schedule extends AbstractIntegerProblem {
     return consecutivePairs * handler.getConsecutivePenaltyFactor();
   }
 
-  private int overlap(int courseIndex1, int courseIndex2, IntegerSolution matrix) {
-    int affectedStudents = 0;
+  private int overlap(int courseIndex1, int courseIndex2, IntegerSolution solution) {
     // checking if both classes actually collide
     if (!(handler.getTurn(courseIndex1) == handler.getTurn(courseIndex2)
         && handler.getDay(courseIndex1) == handler.getDay(courseIndex1))) {
-      return affectedStudents;
+      return 0;
     }
     // get the orientations affected by the collision
-    Integer course1 = new Integer(matrix.getVariableValue(courseIndex1) / 10);
-    Integer course2 = new Integer(matrix.getVariableValue(courseIndex2) / 10);
+    int course1 = solution.getVariableValue(courseIndex1) / 10;
+    int course2 = solution.getVariableValue(courseIndex2) / 10;
     HashSet<Integer> collidingOrientations = new HashSet<Integer>();
     for (Integer orientation : handler.getCourseMapOrientation().get(course1)) {
-      if (handler.getCourseMapOrientation().get(course2).contains(orientation)) {
+      if (handler.getCourseMapOrientation().get(course2).contains(orientation)
+          && handler.getCourseMapYear().get(course1) == handler.getCourseMapYear().get(course2)) {
         collidingOrientations.add(orientation);
       }
     }
     // if there are no orientations, then there can be no students
     if (collidingOrientations.isEmpty()) {
-      return affectedStudents;
+      return 0;
     }
-    // check if there is a third courses that collides aswell
-    boolean jumpDay = true;
-    int startingCell = handler.getDay(courseIndex1) * 2 + handler.getTurn(courseIndex1) * 20;
-    for (int courseIndex3 = startingCell; courseIndex3 < cellsInMatrix; courseIndex3 += (jumpDay ? 59 : 1)) {
-      Integer class3 = new Integer(matrix.getVariableValue(courseIndex3) / 10);
-      if (courseIndex3 != courseIndex1 && courseIndex3 != courseIndex2) {
-        for (Integer collidingOrientation : collidingOrientations) {
-          if (class3 == course2 && course2 == course1) {
-            // if its the same course we must penalize even harder
-            affectedStudents += handler.getClassStudents().get(class3) * 2;
-          } else if (handler.getCourseMapOrientation().get(class3).contains(collidingOrientation)) {
-            affectedStudents += handler.getClassStudents().get(class3);
-          }
-        }
-      }
-      jumpDay = !jumpDay;
+
+    int affectedStudents = 0;
+    for (Integer orientation : collidingOrientations) {
+      affectedStudents += handler.getOrientationStudents().get(orientation)
+          * handler.getRateOfYearlyDecay().get(handler.getCourseMapYear().get(course1));
     }
+
     return affectedStudents;
   }
 

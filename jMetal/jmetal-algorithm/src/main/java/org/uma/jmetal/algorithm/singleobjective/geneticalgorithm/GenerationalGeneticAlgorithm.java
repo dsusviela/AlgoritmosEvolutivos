@@ -43,45 +43,53 @@ public class GenerationalGeneticAlgorithm<S extends Solution<?>> extends Abstrac
     comparator = new ObjectiveComparator<S>(0);
   }
 
-  @Override protected boolean isStoppingConditionReached() {
+  @Override
+  protected boolean isStoppingConditionReached() {
     return (evaluations >= maxEvaluations);
   }
 
-  @Override protected List<S> replacement(List<S> population, List<S> offspringPopulation) {
+  @Override
+  protected List<S> replacement(List<S> population, List<S> offspringPopulation) {
     Collections.sort(population, comparator);
     offspringPopulation.add(population.get(0));
     offspringPopulation.add(population.get(1));
-    Collections.sort(offspringPopulation, comparator) ;
+    Collections.sort(offspringPopulation, comparator);
     offspringPopulation.remove(offspringPopulation.size() - 1);
     offspringPopulation.remove(offspringPopulation.size() - 1);
 
     return offspringPopulation;
   }
 
-  @Override protected List<S> evaluatePopulation(List<S> population) {
+  @Override
+  protected List<S> evaluatePopulation(List<S> population) {
     population = evaluator.evaluate(population, getProblem());
-
+    System.out.println(getResult().getObjective(0) + "=============================================================");
     return population;
   }
 
-  @Override public S getResult() {
-    Collections.sort(getPopulation(), comparator) ;
+  @Override
+  public S getResult() {
+    Collections.sort(getPopulation(), comparator);
     return getPopulation().get(0);
   }
 
-  @Override public void initProgress() {
+  @Override
+  public void initProgress() {
     evaluations = getMaxPopulationSize();
   }
 
-  @Override public void updateProgress() {
+  @Override
+  public void updateProgress() {
     evaluations += getMaxPopulationSize();
   }
 
-  @Override public String getName() {
-    return "gGA" ;
+  @Override
+  public String getName() {
+    return "gGA";
   }
 
-  @Override public String getDescription() {
-    return "Generational Genetic Algorithm" ;
+  @Override
+  public String getDescription() {
+    return "Generational Genetic Algorithm";
   }
 }

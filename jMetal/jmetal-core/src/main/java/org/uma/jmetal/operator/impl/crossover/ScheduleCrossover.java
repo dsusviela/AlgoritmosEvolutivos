@@ -63,12 +63,16 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
       throw new JMetalException("There must be two parents instead of " + integerSolutions.size());
     }
 
+    System.out.println("EMPIEZO CRUZAMIENTO");
+
     return doCrossover(integerSolutions.get(0), integerSolutions.get(1));
   }
 
   private List<IntegerSolution> doCrossover(IntegerSolution parent1, IntegerSolution parent2) {
     if (crossoverRandomGenerator.getRandomValue() <= crossoverProbability) {
-      int crossoverType = (int) Math.floor(Math.random() * 3);
+      System.out.println("CRUZANDO...");
+
+      int crossoverType = JMetalRandom.getInstance().nextInt(0, 2);
 
       if (crossoverType == 0) {
         return dayCrossover(parent1, parent2);
@@ -119,8 +123,11 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
           int cellIndex = 60 * classroom + 20 * turn + 2 * day + cell;
           child.setVariableValue(cellIndex, father.getVariableValue(cellIndex));
           child.setVariableValue(cellIndex + 10, father.getVariableValue(cellIndex + 10));
-          if (!solveCollision(father.getVariableValue(cellIndex + 10), child, father)) {
-            return (IntegerSolution) mother.copy();
+          if (data.hasPair(cellIndex, father)) {
+            if (!solveCollision(father.getVariableValue(cellIndex + 10), child, father)) {
+              System.out.println("CROSSOVER ABORTED");
+              return (IntegerSolution) mother.copy();
+            }
           }
         }
       }
@@ -133,7 +140,7 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
 
   private List<IntegerSolution> turnCrossover(IntegerSolution parent1, IntegerSolution parent2) {
     Random random = new Random();
-    int turn = random.nextInt(5);
+    int turn = random.nextInt(3);
     List<IntegerSolution> offspring = new ArrayList<IntegerSolution>(2);
     offspring.add(doTurnCrossover(parent1, parent2, turn));
     offspring.add(doTurnCrossover(parent2, parent1, turn));
@@ -165,8 +172,11 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
           int cellIndex = 60 * classroom + 20 * turn + 2 * day + cell;
           child.setVariableValue(cellIndex, father.getVariableValue(cellIndex));
           child.setVariableValue(cellIndex + 10, father.getVariableValue(cellIndex + 10));
-          if (!solveCollision(father.getVariableValue(cellIndex + 10), child, father)) {
-            return (IntegerSolution) mother.copy();
+          if (data.hasPair(cellIndex, father)) {
+            if (!solveCollision(father.getVariableValue(cellIndex + 10), child, father)) {
+              System.out.println("CROSSOVER ABORTED");
+              return (IntegerSolution) mother.copy();
+            }
           }
         }
       }
@@ -179,7 +189,7 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
 
   private List<IntegerSolution> classroomCrossover(IntegerSolution parent1, IntegerSolution parent2) {
     Random random = new Random();
-    int classroom = random.nextInt(5);
+    int classroom = random.nextInt(data.getClassroomQty());
     List<IntegerSolution> offspring = new ArrayList<IntegerSolution>(2);
     offspring.add(doClassroomCrossover(parent1, parent2, classroom));
     offspring.add(doClassroomCrossover(parent2, parent1, classroom));
@@ -211,8 +221,11 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
           int cellIndex = 60 * classroom + 20 * turn + 2 * day + cell;
           child.setVariableValue(cellIndex, father.getVariableValue(cellIndex));
           child.setVariableValue(cellIndex + 10, father.getVariableValue(cellIndex + 10));
-          if (!solveCollision(father.getVariableValue(cellIndex + 10), child, father)) {
-            return (IntegerSolution) mother.copy();
+          if (data.hasPair(cellIndex, father)) {
+            if (!solveCollision(father.getVariableValue(cellIndex + 10), child, father)) {
+              System.out.println("CROSSOVER ABORTED");
+              return (IntegerSolution) mother.copy();
+            }
           }
         }
       }
@@ -279,12 +292,20 @@ public class ScheduleCrossover implements CrossoverOperator<IntegerSolution> {
             if (data.getClassType(classWithType) < 2) {
               child = data.insertPairIntoSolution(classWithType, child);
               if (child == null) {
+                System.out.println("CROSSOVER ABORTED");
                 child = (IntegerSolution) mother.copy();
+                return;
+              } else {
+                classBalance.put(classWithType, classBalance.get(classWithType) - 1);
               }
             } else {
               child = data.insertClassIntoSolution(classWithType, child);
               if (child == null) {
+                System.out.println("CROSSOVER ABORTED");
                 child = (IntegerSolution) mother.copy();
+                return;
+              } else {
+                classBalance.put(classWithType, classBalance.get(classWithType) - 1);
               }
             }
           }

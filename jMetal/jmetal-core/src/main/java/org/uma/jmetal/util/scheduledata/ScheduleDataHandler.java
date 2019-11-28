@@ -121,6 +121,14 @@ public class ScheduleDataHandler {
     this.classroomNameMap = classroomNameMap;
   }
 
+  public int getClassroomQty() {
+    return classroomsQty;
+  }
+
+  public void setClassroomQty(int classroomQty) {
+    this.classroomsQty = classroomQty;
+  }
+
   public HashMap<Integer, Integer> getClassStudents() {
     return classStudents;
   }
@@ -430,6 +438,9 @@ public class ScheduleDataHandler {
     int victim = chooseVictim(victimSet, originalSolution);
     int victimPair = originalSolution.getVariableValue(victim + 10);
     solution = moveVictimToFeasibleClassroom(true, victim, originalSolution);
+    if (solution == null) {
+      return solution;
+    }
     solution.setVariableValue(victim, classWithType);
     solution.setVariableValue(victimPair, classWithType);
     solution.setVariableValue(victim + 10, victimPair);
@@ -452,18 +463,23 @@ public class ScheduleDataHandler {
     return solution;
   }
 
-  public int findFeasibleClassroom(int cellIndex, IntegerSolution solution) {
+  public int findFeasibleClassroom(int cellIndex, IntegerSolution solution, boolean canStay) {
     int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
-    return findFeasibleClassroom(attendingStudents, cellIndex, solution);
+    return findFeasibleClassroom(attendingStudents, cellIndex, solution, canStay);
   }
 
-  public int findFeasibleClassroom(int attendingStudents, int cellIndex, IntegerSolution solution) {
+  public int findFeasibleClassroom(int cellIndex, IntegerSolution solution) {
+    int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
+    return findFeasibleClassroom(attendingStudents, cellIndex, solution, true);
+  }
+
+  public int findFeasibleClassroom(int attendingStudents, int cellIndex, IntegerSolution solution, boolean canStay) {
     int res;
     int firstClassroomIndex = firstFeasibleClassroom(attendingStudents, 0, classroomsQty - 1);
     for (int classroomIndex = firstClassroomIndex; classroomIndex < classroomsQty; classroomIndex++) {
       for (int cell = 0; cell < 2; cell++) {
         res = 60 * sortedClassrooms.get(classroomIndex)[0] + 20 * getTurn(cellIndex) + 2 * getDay(cellIndex) + cell;
-        if (isAvailable(res, solution)) {
+        if (isAvailable(res, solution) && (canStay || cellIndex != res)) {
           return res;
         }
       }
@@ -472,12 +488,16 @@ public class ScheduleDataHandler {
   }
 
   public int findFeasibleDay(int cellIndex, IntegerSolution solution) {
+    return findFeasibleDay(cellIndex, solution, true);
+  }
+
+  public int findFeasibleDay(int cellIndex, IntegerSolution solution, boolean canStay) {
     int res;
     HashSet<Integer> days = getCandidateDaysForPair(cellIndex, solution);
     for (Integer day : days) {
       for (int cell = 0; cell < 2; cell++) {
         res = 60 * getClassroom(cellIndex) + 20 * getTurn(cellIndex) + 2 * day + cell;
-        if (isAvailable(res, solution)) {
+        if (isAvailable(res, solution) && (canStay || cellIndex != res)) {
           return res;
         }
       }
@@ -485,12 +505,18 @@ public class ScheduleDataHandler {
     return -1;
   }
 
-  public int findFeasibleClassroomAndDay(int cellIndex, IntegerSolution solution) {
+  public int findFeasibleClassroomAndDay(int cellIndex, IntegerSolution solution, boolean canStay) {
     int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
-    return findFeasibleClassroomAndDay(attendingStudents, cellIndex, solution);
+    return findFeasibleClassroomAndDay(attendingStudents, cellIndex, solution, canStay);
   }
 
-  public int findFeasibleClassroomAndDay(int attendingStudents, int cellIndex, IntegerSolution solution) {
+  public int findFeasibleClassroomAndDay(int cellIndex, IntegerSolution solution) {
+    int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
+    return findFeasibleClassroomAndDay(attendingStudents, cellIndex, solution, true);
+  }
+
+  public int findFeasibleClassroomAndDay(int attendingStudents, int cellIndex, IntegerSolution solution,
+      boolean canStay) {
     int res;
     int firstClassroomIndex = firstFeasibleClassroom(attendingStudents, 0, classroomsQty - 1);
     for (int classroomIndex = firstClassroomIndex; classroomIndex < classroomsQty; classroomIndex++) {
@@ -588,6 +614,32 @@ public class ScheduleDataHandler {
     } else {
       // no eligible victims were found
       return null;
+    }
+  }
+
+  public void unsafeSwap(int cellIndex, int victim, IntegerSolution solution) {
+    boolean cellHadPair = hasPair(cellIndex, solution);
+    boolean victimHadPair = hasPair(victim, solution);
+    int victimCopy = solution.getVariableValue(victim);
+    int vicitmPairCopy = solution.getVariableValue(victim + 10);
+    int originalValue = solution.getVariableValue(cellIndex);
+    int originalPairValue = solution.getVariableValue(cellIndex + 10);
+    // perform the swap
+    solution.setVariableValue(victim, originalValue);
+    solution.setVariableValue(cellIndex, victimCopy);
+    if (cellHadPair) {
+      solution.setVariableValue(victim + 10, originalPairValue);
+      // pair now should reference new value
+      solution.setVariableValue(originalPairValue + 10, victim);
+    } else {
+      solution.setVariableValue(victim + 10, victim);
+    }
+    if (victimHadPair) {
+      solution.setVariableValue(cellIndex + 10, vicitmPairCopy);
+      // pair now should reference new value
+      solution.setVariableValue(vicitmPairCopy + 10, cellIndex);
+    } else {
+      solution.setVariableValue(cellIndex + 10, cellIndex);
     }
   }
 

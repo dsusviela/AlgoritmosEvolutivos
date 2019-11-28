@@ -87,6 +87,8 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
             throw new JMetalException("Null parameter");
         }
 
+        System.out.println("EMPIEZO MUTACION");
+
         doMutation(mutationProbability, solution);
         return solution;
     }
@@ -105,11 +107,13 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
                 item = false;
             }
             victims.clear();
-            if (randomGenerator.getRandomValue() <= probability && (cellIndex % 20 < 10) && !evaluated[cellIndex]) {
+            if (randomGenerator.getRandomValue() <= probability && data.isIndexClass(cellIndex)
+                    && !data.isAvailable(cellIndex, originalSolution) && !evaluated[cellIndex]) {
+                System.out.println("MUTANDO...");
                 if (solution.getLowerBound(cellIndex) == solution.getUpperBound(cellIndex)) {
                     solution.setVariableValue(cellIndex, solution.getLowerBound(cellIndex));
                 } else {
-                    int mutationType = (int) Math.floor(Math.random() * 3);
+                    int mutationType = JMetalRandom.getInstance().nextInt(0, 2);
 
                     // Day mutation
                     if (mutationType == 0) {
@@ -138,27 +142,73 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
                     }
                     Collections.shuffle(feasibleVictims);
                     victimIndex = feasibleVictims.getFirst();
-                    int victim = feasibleVictims.get(victimIndex);
                     cellHadPair = data.hasPair(cellIndex, solution);
                     victimHadPair = data.hasPair(victimIndex, solution);
 
-                    // Swap the cells and the pair references
-                    data.swapFeasibleClassroom(victim, cellIndex, solution);
-
                     // Only in turn mutation, the pairs are exchanged too
                     if (mutationType == 1) {
-                        if (cellHadPair) {
-                            if (!solveCollision(solution.getVariableValue(victimIndex + 10), solution)) {
+                        // Swap the cells and the pair references
+                        solution = data.swapFeasibleClassroom(victimIndex, cellIndex, solution);
+
+                        int cellPairIndex = solution.getVariableValue(cellIndex + 10);
+                        int victimPairIndex = solution.getVariableValue(victimIndex + 10);
+
+                        if (cellHadPair && victimHadPair) {
+                            data.unsafeSwap(cellPairIndex, victimPairIndex, solution);
+                            if (!solveCollision(cellPairIndex, solution)) {
                                 // abort
+                                System.out.println("MUTATION ABORTED");
+                                solution = originalSolution;
+                            }
+                            if (!solveCollision(victimPairIndex, solution)) {
+                                // abort
+                                System.out.println("MUTATION ABORTED");
                                 solution = originalSolution;
                             }
                         }
-                        if (victimHadPair) {
-                            if (!solveCollision(solution.getVariableValue(cellIndex + 10), solution)) {
+
+                        if (cellHadPair && !victimHadPair) {
+                            int cellToSubstitute = 20 * data.getTurn(victimIndex) + 2 * data.getDay(cellPairIndex);
+                            int cellToSubstituteValue = solution.getVariableValue(cellToSubstitute);
+                            int cellToSubstituteRefValue = solution.getVariableValue(cellToSubstitute + 10);
+
+                            solution.setVariableValue(cellToSubstitute, solution.getVariableValue(cellPairIndex));
+                            solution.setVariableValue(cellToSubstitute + 10, victimIndex);
+
+                            if (!solveCollision(cellToSubstitute, solution)) {
                                 // abort
+                                System.out.println("MUTATION ABORTED");
                                 solution = originalSolution;
+                            } else {
+                                solution.setVariableValue(cellToSubstitute, cellToSubstituteValue);
+                                solution.setVariableValue(cellToSubstitute + 10, cellToSubstituteRefValue);
                             }
                         }
+
+                        if (victimHadPair && !cellHadPair) {
+                            int cellToSubstitute = 20 * data.getTurn(cellIndex) + 2 * data.getDay(victimPairIndex);
+                            int cellToSubstituteValue = solution.getVariableValue(cellToSubstitute);
+                            int cellToSubstituteRefValue = solution.getVariableValue(cellToSubstitute + 10);
+
+                            solution.setVariableValue(cellToSubstitute, solution.getVariableValue(victimPairIndex));
+                            solution.setVariableValue(cellToSubstitute + 10, cellIndex);
+
+                            if (!solveCollision(cellToSubstitute, solution)) {
+                                // abort
+                                System.out.println("MUTATION ABORTED");
+                                solution = originalSolution;
+                            } else {
+                                solution.setVariableValue(cellToSubstitute, cellToSubstituteValue);
+                                solution.setVariableValue(cellToSubstitute + 10, cellToSubstituteRefValue);
+                            }
+                        }
+                    } else {
+                        int oldCellValue = solution.getVariableValue(cellIndex);
+                        solution.setVariableValue(cellIndex, solution.getVariableValue(victimIndex));
+                        solution.setVariableValue(victimIndex, oldCellValue);
+                        oldCellValue = solution.getVariableValue(cellIndex + 10);
+                        solution.setVariableValue(cellIndex + 10, solution.getVariableValue(victimIndex + 10));
+                        solution.setVariableValue(victimIndex + 10, solution.getVariableValue(cellIndex + 10));
                     }
                 }
             }
@@ -170,27 +220,25 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
         int victimIndex = 0;
         boolean isSelectable = false;
 
+        int cellDay = data.getDay(cellIndex);
         // Looks for a victim in the same column
-        int startCellIndex = cellIndex - (cellIndex % 10);
-        for (int k = 0; k < 10; k++) {
-            victimIndex = startCellIndex + k;
-            isSelectable = victimIndex != cellIndex && !evaluated[victimIndex]
-                    && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex)
-                    && data.isAvailable(victimIndex, solution) && data.getDay(cellIndex) != (k / 2);
-            // The cell in the same block that the victim can't be my pair
-            if (victimIndex % 2 == 0) {
-                isSelectable &= solution.getVariableValue(victimIndex - 1) != solution.getVariableValue(cellIndex);
-            } else {
-                isSelectable &= solution.getVariableValue(victimIndex + 1) != solution.getVariableValue(cellIndex);
+        for (int day = 0; day < 5; day++) {
+            if (cellDay == day) {
+                continue;
             }
-            // The other cell in my block can't be the victim's pair
-            if (cellIndex % 2 == 0) {
-                isSelectable &= solution.getVariableValue(cellIndex - 1) != solution.getVariableValue(victimIndex);
-            } else {
-                isSelectable &= solution.getVariableValue(cellIndex + 1) != solution.getVariableValue(victimIndex);
-            }
-            if (isSelectable) {
-                res.add(victimIndex);
+            for (int cell = 0; cell < 2; cell++) {
+                victimIndex = 60 * data.getClassroom(cellIndex) + 20 * data.getTurn(cellIndex) + 2 * day + cell;
+                isSelectable = !evaluated[victimIndex] && !data.isAvailable(victimIndex, solution)
+                        && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex);
+                // The cell in the same block that the victim can't be my pair
+                if (victimIndex % 2 == 0) {
+                    isSelectable &= victimIndex - 1 != solution.getVariableValue(cellIndex + 10);
+                } else {
+                    isSelectable &= victimIndex + 1 != solution.getVariableValue(cellIndex + 10);
+                }
+                if (isSelectable) {
+                    res.add(victimIndex);
+                }
             }
         }
         return res;
@@ -204,49 +252,25 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
         // Looks for a victim in the same day and classroom
 
         // The turn of cell
-        int turn = (int) Math.floor(cellIndex / 20) % 3;
-        int startCellIndex = cellIndex - 20 * turn;
-        if (cellIndex % 2 == 1) {
-            startCellIndex -= 1;
-        }
-        for (int k = 0; k < 3; k++) {
-            victimIndex = startCellIndex + 20 * k;
-            isSelectable = victimIndex != cellIndex && !evaluated[victimIndex]
-                    && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex)
-                    && data.isAvailable(victimIndex, solution);
-            // The cell in the same block that the victim can't be my pair
-            if (victimIndex % 2 == 0) {
-                isSelectable &= solution.getVariableValue(victimIndex - 1) != solution.getVariableValue(cellIndex);
-            } else {
-                isSelectable &= solution.getVariableValue(victimIndex + 1) != solution.getVariableValue(cellIndex);
-            }
-            // The other cell in my block can't be the victim's pair
-            if (cellIndex % 2 == 0) {
-                isSelectable &= solution.getVariableValue(cellIndex - 1) != solution.getVariableValue(victimIndex);
-            } else {
-                isSelectable &= solution.getVariableValue(cellIndex + 1) != solution.getVariableValue(victimIndex);
-            }
-            if (isSelectable) {
-                res.add(victimIndex);
-            }
+        int cellTurn = data.getTurn(cellIndex);
 
-            victimIndex += 1;
-            isSelectable = victimIndex != cellIndex && !evaluated[victimIndex]
-                    && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex);
-            // The cell in the same block that the victim can't be my pair
-            if (victimIndex % 2 == 0) {
-                isSelectable &= solution.getVariableValue(victimIndex - 1) != solution.getVariableValue(cellIndex);
-            } else {
-                isSelectable &= solution.getVariableValue(victimIndex + 1) != solution.getVariableValue(cellIndex);
+        for (int turn = 0; turn < 3; turn++) {
+            if (cellTurn == turn) {
+                continue;
             }
-            // The other cell in my block can't be the victim's pair
-            if (cellIndex % 2 == 0) {
-                isSelectable &= solution.getVariableValue(cellIndex - 1) != solution.getVariableValue(victimIndex);
-            } else {
-                isSelectable &= solution.getVariableValue(cellIndex + 1) != solution.getVariableValue(victimIndex);
-            }
-            if (isSelectable) {
-                res.add(victimIndex);
+            for (int cell = 0; cell < 2; cell++) {
+                victimIndex = 60 * data.getClassroom(cellIndex) + 20 * turn + 2 * data.getDay(cellIndex) + cell;
+                isSelectable = !evaluated[victimIndex] && !data.isAvailable(victimIndex, solution)
+                        && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex);
+                // The other cell in my block can't be the victim's pair
+                if (victimIndex % 2 == 0) {
+                    isSelectable &= victimIndex - 1 != solution.getVariableValue(cellIndex + 10);
+                } else {
+                    isSelectable &= victimIndex + 1 != solution.getVariableValue(cellIndex + 10);
+                }
+                if (isSelectable) {
+                    res.add(victimIndex);
+                }
             }
         }
         return res;
@@ -260,35 +284,24 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
         // Looks for a victim in the same day and turn
 
         // The classroom of cell
-        int classroom = (int) Math.floor(cellIndex / 60);
-        int startCellIndex = cellIndex - classroom * 60;
-        if (cellIndex % 2 == 1) {
-            startCellIndex -= 1;
-        }
-        for (int k = 0; k < (int) Math.floor(solution.getNumberOfVariables() / 60); k++) {
-            victimIndex = startCellIndex + 60 * k;
-            isSelectable = victimIndex != cellIndex && !evaluated[victimIndex]
-                    && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex)
-                    && data.isAvailable(victimIndex, solution);
-            if (victimIndex % 2 == 0) {
-                isSelectable &= solution.getVariableValue(victimIndex - 1) != solution.getVariableValue(cellIndex);
-            } else {
-                isSelectable &= solution.getVariableValue(victimIndex + 1) != solution.getVariableValue(cellIndex);
+        int cellClassroom = data.getClassroom(cellIndex);
+        for (int candidateClassroom = 0; candidateClassroom < data.getClassroomQty(); candidateClassroom++) {
+            if (cellClassroom == candidateClassroom) {
+                continue;
             }
-            if (isSelectable) {
-                res.add(victimIndex);
-            }
-
-            victimIndex += 1;
-            isSelectable = victimIndex != cellIndex && !evaluated[victimIndex]
-                    && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex);
-            if (victimIndex % 2 == 0) {
-                isSelectable &= solution.getVariableValue(victimIndex - 1) != solution.getVariableValue(cellIndex);
-            } else {
-                isSelectable &= solution.getVariableValue(victimIndex + 1) != solution.getVariableValue(cellIndex);
-            }
-            if (isSelectable) {
-                res.add(victimIndex);
+            for (int cell = 0; cell < 2; cell++) {
+                victimIndex = 60 * candidateClassroom + 20 * data.getTurn(cellIndex) + 2 * data.getDay(cellIndex)
+                        + cell;
+                isSelectable = !evaluated[victimIndex] && !data.isAvailable(victimIndex, solution)
+                        && solution.getVariableValue(victimIndex) != solution.getVariableValue(cellIndex);
+                if (victimIndex % 2 == 0) {
+                    isSelectable &= victimIndex - 1 != solution.getVariableValue(cellIndex + 10);
+                } else {
+                    isSelectable &= victimIndex + 1 != solution.getVariableValue(cellIndex + 10);
+                }
+                if (isSelectable) {
+                    res.add(victimIndex);
+                }
             }
         }
         return res;
@@ -300,11 +313,11 @@ public class ScheduleMutation implements MutationOperator<IntegerSolution> {
             return true;
         }
 
-        int cellDestination = data.findFeasibleClassroom(cellIndex, solution);
+        int cellDestination = data.findFeasibleClassroom(cellIndex, solution, false);
         if (cellDestination == -1) {
-            cellDestination = data.findFeasibleDay(cellIndex, solution);
+            cellDestination = data.findFeasibleDay(cellIndex, solution, false);
             if (cellDestination == -1) {
-                cellDestination = data.findFeasibleClassroomAndDay(cellIndex, solution);
+                cellDestination = data.findFeasibleClassroomAndDay(cellIndex, solution, false);
                 if (cellDestination == -1) {
                     // Harakiri
                     return false;

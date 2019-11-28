@@ -29,7 +29,7 @@ public class GenerationalGeneticAlgorithmScheduleRunner {
     SelectionOperator<List<IntegerSolution>, IntegerSolution> selector;
     ScheduleDataHandler handler = new ScheduleDataHandler();
     scheduleProblem = new Schedule(handler);
-    float crossoverProbability = 0.05f;
+    float crossoverProbability = 0.25f;
 
     // operator initializator
     crossover = new ScheduleCrossover(handler, crossoverProbability);
@@ -37,26 +37,20 @@ public class GenerationalGeneticAlgorithmScheduleRunner {
     selector = new BinaryTournamentSelection<IntegerSolution>();
 
     System.out.println("DATA INICIALIZADA");
-    algorithm = new GeneticAlgorithmBuilder<>(scheduleProblem, crossover, mutator)
-        .setPopulationSize(6)
-        .setMaxEvaluations(250)
-        .setSelectionOperator(selector)
-        .build();
+    algorithm = new GeneticAlgorithmBuilder<>(scheduleProblem, crossover, mutator).setPopulationSize(100)
+        .setMaxEvaluations(10000).setSelectionOperator(selector).build();
     System.out.println("ALGORITMO INICIALIZADO");
-    AlgorithmRunner algorithmRunner = new AlgorithmRunner.Executor(algorithm)
-        .execute();
+    AlgorithmRunner algorithmRunner = new AlgorithmRunner.Executor(algorithm).execute();
     System.out.println("TERMINO DE EJECUTAR");
-    IntegerSolution solution = algorithm.getResult() ;
-    List<IntegerSolution> population = new ArrayList<>(1) ;
+    IntegerSolution solution = algorithm.getResult();
+    List<IntegerSolution> population = new ArrayList<>(1);
     population.add(solution);
 
-    long computingTime = algorithmRunner.getComputingTime() ;
+    long computingTime = algorithmRunner.getComputingTime();
 
-    new SolutionListOutput(population)
-        .setSeparator("\t")
+    new SolutionListOutput(population).setSeparator("\t")
         .setVarFileOutputContext(new DefaultFileOutputContext("Variables.tsv"))
-        .setFunFileOutputContext(new DefaultFileOutputContext("Objectives.tsv"))
-        .print();
+        .setFunFileOutputContext(new DefaultFileOutputContext("Objectives.tsv")).print();
 
     JMetalLogger.logger.info("Total execution time: " + computingTime + "ms");
     JMetalLogger.logger.info("Objectives values have been written to file Objectives.tsv");
