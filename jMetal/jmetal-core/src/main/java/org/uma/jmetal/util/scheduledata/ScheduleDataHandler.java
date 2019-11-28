@@ -452,11 +452,10 @@ public class ScheduleDataHandler {
     return solution;
   }
 
-  // public int findFeasibleClassroom(int cellIndex, IntegerSolution solution) {
-  // int attendingStudents =
-  // getAttendingStudents(solution.getVariableValue(cellIndex));
-  // return findFeasibleClassroom(attendingStudents, cellIndex, solution);
-  // }
+  public int findFeasibleClassroom(int cellIndex, IntegerSolution solution) {
+    int attendingStudents = getAttendingStudents(solution.getVariableValue(cellIndex));
+    return findFeasibleClassroom(attendingStudents, cellIndex, solution);
+  }
 
   public int findFeasibleClassroom(int attendingStudents, int cellIndex, IntegerSolution solution) {
     int res;
